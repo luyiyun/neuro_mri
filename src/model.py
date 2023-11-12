@@ -1,4 +1,5 @@
 from typing import List, Literal, Optional, Tuple
+from itertools import chain
 
 import numpy as np
 import timm
@@ -146,6 +147,7 @@ class CNN2dATT(nn.Module):
         nclasses: int = 2,
         backbone: str = "resnet18",
         backbone_pretrained: bool = True,
+        backbone_freeze: bool = False,
         spatial_attention: bool = True,
         spatt_hiddens: List[int] = [256, 256],
         spatt_activations: List[str] = ["tanh", "tanh"],
@@ -165,6 +167,8 @@ class CNN2dATT(nn.Module):
     ):
         assert loss_func in ["ce", "focal"]
         assert focal_alpha >= 0.0 and focal_alpha <= 1.0
+
+        self._bb_freeze = backbone_freeze
 
         super().__init__()
 
@@ -242,3 +246,14 @@ class CNN2dATT(nn.Module):
         loss = self.criterion(pred, y)
 
         return loss, pred
+
+    def parameters(self):
+        if self._bb_freeze:
+            params = [self.predictor.parameters()]
+            if self.satt is not None:
+                params.append(self.satt.parameters())
+            if self.iatt is not None:
+                params.append(self.iatt.parameters())
+            return chain.from_iterable(params)
+
+        return super().parameters()

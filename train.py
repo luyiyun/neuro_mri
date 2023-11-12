@@ -29,6 +29,7 @@ def main():
     parser.add_argument("--seed", default=2022, type=int)
 
     parser.add_argument("--no_backbone_pretrained", action="store_true")
+    parser.add_argument("--backbone_freeze", action="store_true")
     parser.add_argument(
         "--loss_func", choices=["ce", "focal"], default="focal"
     )
@@ -62,6 +63,7 @@ def main():
     # 2. model
     model = CNN2dATT(
         backbone_pretrained=not args.no_backbone_pretrained,
+        backbone_freeze=args.backbone_freeze,
         loss_func=args.loss_func,
     )
 
