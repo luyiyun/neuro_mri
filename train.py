@@ -27,12 +27,23 @@ def main():
     parser.add_argument("--valid_size", default=0.1, type=float)
     parser.add_argument("--test_size", default=0.2, type=float)
     parser.add_argument("--seed", default=2022, type=int)
+
+    parser.add_argument("--no_backbone_pretrained", action="store_true")
     parser.add_argument(
         "--loss_func", choices=["ce", "focal"], default="focal"
     )
+
     parser.add_argument("--device", default="cpu", type=str)
     parser.add_argument("--nepoches", default=10, type=int)
+    parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--save_root", default=None, type=str)
+    parser.add_argument("--no_modelcheckpoint", action="store_true")
+    parser.add_argument("--no_early_stop", action="store_true")
+    parser.add_argument("--early_stop_patience", default=10, type=int)
+    parser.add_argument(
+        "--monitor_metric", choices=["bacc", "acc", "auc"], default="bacc"
+    )
+    parser.add_argument("--no_show_message", action="store_true")
     args = parser.parse_args()
 
     # 1. dataset
@@ -49,7 +60,10 @@ def main():
     )
 
     # 2. model
-    model = CNN2dATT(loss_func=args.loss_func)
+    model = CNN2dATT(
+        backbone_pretrained=not args.no_backbone_pretrained,
+        loss_func=args.loss_func,
+    )
 
     # 3. train
     hist = train_model(
@@ -58,9 +72,19 @@ def main():
         loaders["valid"],
         device=args.device,
         nepoches=args.nepoches,
+        learning_rate=args.learning_rate,
+        model_checkpoint=not args.no_modelcheckpoint,
+        early_stop=not args.no_early_stop,
+        early_stop_patience=args.early_stop_patience,
+        monitor_metric=args.monitor_metric,
+        show_message=not args.no_show_message,
     )
     test_scores, test_pred = test_model(
         model, loaders["test"], device=args.device, return_predict=True
+    )
+    logging.info(
+        "Test: "
+        + ", ".join(["%s:%.4f" % (k, vs[-1]) for k, vs in test_scores.items()])
     )
 
     # 4. saving
@@ -71,7 +95,10 @@ def main():
         )
     else:
         save_root = args.save_root
+    logging.info("the results saved in %s" % save_root)
     os.makedirs(save_root)
+
+    save_json(args.__dict__, osp.join(save_root, "args.json"))
 
     hist_df = pd.DataFrame(hist["train"])
     hist_df["phase"] = "train"
