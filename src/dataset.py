@@ -5,10 +5,10 @@ import pandas as pd
 import torch
 from monai.data import Dataset
 from monai.transforms import (CenterSpatialCropd, Compose, EnsureChannelFirstd,
-                              EnsureTyped, LoadImaged,
+                              EnsureTyped, Lambdad, LoadImaged,
                               RandAdjustContrastd, RandBiasFieldd, RandFlipd,
-                              Resized, ScaleIntensityd, Lambdad, adaptor)
-from sklearn.model_selection import train_test_split
+                              Resized, ScaleIntensityd, adaptor)
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from torch.utils.data import DataLoader
 
 TUPLE3 = Tuple[int, int, int]
@@ -65,49 +65,15 @@ def get_transforms(
     return Compose(trans)
 
 
-def get_loaders(
-    df: pd.DataFrame,
+def dfs2loaders(
+    dfs: Dict[str, pd.DataFrame],
     fn_col: str,
     label_col: str,
-    valid_size: Optional[float] = None,
-    test_size: Optional[float] = None,
-    seed: Optional[int] = None,
-    batch_size: int = 16,
-    num_workers: int = 4,
-    drop_last: bool = True,
-    return_classes_codes: bool = False
+    batch_size: int,
+    num_workers: int,
+    drop_last: bool,
+    classes: Sequence,
 ) -> Union[Dict[str, DataLoader], Tuple[Dict[str, DataLoader], Sequence]]:
-    # get classes mapping
-    classes = df[label_col].unique()
-    logging.info(
-        "classes mapping: %s"
-        % ", ".join(["%s->%d" % (str(ci), i) for i, ci in enumerate(classes)])
-    )
-
-    # split dataframe
-    dfs = {}
-    if valid_size is not None:
-        df, valid_df = train_test_split(
-            df,
-            test_size=valid_size,
-            random_state=seed,
-            shuffle=True,
-            stratify=df[label_col],
-        )
-        dfs["valid"] = valid_df
-    if test_size is not None:
-        df, test_df = train_test_split(
-            df,
-            test_size=test_size
-            if valid_size is None
-            else test_size / (1 - valid_size),
-            random_state=seed,
-            shuffle=True,
-            stratify=df[label_col],
-        )
-        dfs["test"] = test_df
-    dfs["train"] = df
-
     # get datasets
     datasets = {}
     for phase, dfi in dfs.items():
@@ -135,7 +101,86 @@ def get_loaders(
             drop_last=drop_last and (phase == "train"),
         )
 
-    if not return_classes_codes:
-        return dataloaders
+    return dataloaders
 
-    return dataloaders, classes
+
+def get_loaders(
+    df: pd.DataFrame,
+    fn_col: str,
+    label_col: str,
+    cv: Optional[int] = None,
+    valid_size: Optional[float] = None,
+    test_size: Optional[float] = None,
+    seed: Optional[int] = None,
+    batch_size: int = 16,
+    num_workers: int = 4,
+    drop_last: bool = True,
+    return_classes_codes: bool = False,
+):
+    # get classes mapping
+    classes = df[label_col].unique()
+    logging.info(
+        "classes mapping: %s"
+        % ", ".join(["%s->%d" % (str(ci), i) for i, ci in enumerate(classes)])
+    )
+
+    if cv is None:
+        # split dataframe
+        dfs = {}
+        if valid_size is not None:
+            df, valid_df = train_test_split(
+                df,
+                test_size=valid_size,
+                random_state=seed,
+                shuffle=True,
+                stratify=df[label_col],
+            )
+            dfs["valid"] = valid_df
+        if test_size is not None:
+            df, test_df = train_test_split(
+                df,
+                test_size=test_size
+                if valid_size is None
+                else test_size / (1 - valid_size),
+                random_state=seed,
+                shuffle=True,
+                stratify=df[label_col],
+            )
+            dfs["test"] = test_df
+        dfs["train"] = df
+
+        dataloaders = dfs2loaders(
+            dfs, fn_col, label_col, batch_size, num_workers, drop_last,
+            classes
+        )
+
+        if not return_classes_codes:
+            return dataloaders
+
+        return dataloaders, classes
+
+    spliter = StratifiedKFold(cv, shuffle=True, random_state=seed)
+    for train_index, test_index in spliter.split(df, df[label_col]):
+        dfs = {"test": df.iloc[test_index, :]}
+        train_df = df.iloc[train_index, :]
+        if valid_size is not None:
+            train_df, valid_df = train_test_split(
+                train_df,
+                test_size=valid_size / (1 - 1 / cv),
+                random_state=seed,
+                shuffle=True,
+                stratify=train_df[label_col],
+            )
+            dfs["valid"] = valid_df
+
+        dfs["train"] = train_df
+
+        dataloaders = dfs2loaders(
+            dfs, fn_col, label_col, batch_size, num_workers, drop_last,
+            classes
+        )
+
+        if not return_classes_codes:
+            yield dataloaders
+        else:
+            yield dataloaders, classes
