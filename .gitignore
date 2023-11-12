@@ -1,0 +1,11 @@
+**/__pycache__/
+.*
+!.gitignore
+# bak
+# outputs/
+# notebooks/data
+# notebooks/.ipynb_checkpoints/
+# notebooks/**/*.png
+# notebooks/**/*.xlsx
+# *.pklz
+# extend/
