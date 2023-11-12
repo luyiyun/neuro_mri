@@ -30,6 +30,15 @@ def main():
 
     parser.add_argument("--no_backbone_pretrained", action="store_true")
     parser.add_argument("--backbone_freeze", action="store_true")
+    parser.add_argument("--no_satt", action="store_true")
+    parser.add_argument("--satt_hiddens", nargs="*", default=[256, 256], type=int)
+    parser.add_argument("--satt_acts", nargs="*", default=["tanh", "tanh"], type=str)
+    parser.add_argument("--no_satt_bn", action="store_true")
+    parser.add_argument("--satt_dp", default=None, type=float)
+    parser.add_argument("--no_iatt", action="store_true")
+    parser.add_argument("--iatt_hidden", default=256, type=int)
+    parser.add_argument("--iatt_bias", action="store_true")
+    parser.add_argument("--iatt_temperature", default=1.0, type=float)
     parser.add_argument(
         "--loss_func", choices=["ce", "focal"], default="focal"
     )
@@ -64,6 +73,15 @@ def main():
     model = CNN2dATT(
         backbone_pretrained=not args.no_backbone_pretrained,
         backbone_freeze=args.backbone_freeze,
+        spatial_attention=not args.no_satt,
+        spatt_hiddens=args.satt_hiddens,
+        spatt_activations=args.satt_acts,
+        spatt_bn=not args.no_satt_bn,
+        spatt_dp=args.satt_dp,
+        instance_attention=not args.no_iatt,
+        inatt_hidden=args.iatt_hidden,
+        inatt_bias=args.iatt_bias,
+        inatt_temperature=args.iatt_temperature,
         loss_func=args.loss_func,
     )
 

@@ -199,6 +199,8 @@ class CNN2dATT(nn.Module):
             self.iatt = InstanceAttention(
                 backbone_outdims, inatt_hidden, inatt_bias, inatt_temperature
             )
+        else:
+            self.iatt = None
 
         # 4. MLP predictor
         self.predictor = MLP(
@@ -223,7 +225,7 @@ class CNN2dATT(nn.Module):
             sscore = self.satt(x)  # (bz,1,x,y)
             x = (x * sscore).sum(dim=(2, 3))  # (bz,c)
         else:
-            x = x.sum(dim=(2, 3))
+            x = x.mean(dim=(2, 3))
             sscore = None
 
         x = x.reshape(self._nb, -1, x.size(1))  # (b,z,c)
@@ -232,7 +234,7 @@ class CNN2dATT(nn.Module):
             iscore = self.iatt(x)  # (b,z,1)
             xg = (x * iscore).sum(dim=1)  # (b,c)
         else:
-            xg = x.sum(dim=1)
+            xg = x.mean(dim=1)
             iscore = None
 
         pred = self.predictor(xg)  # (b,C)
