@@ -6,6 +6,7 @@ import timm
 import torch
 import torch.nn as nn
 from monai.networks.layers import Act
+from torch.distributions import Categorical, kl_divergence
 
 
 def get_resnet_bone(
@@ -164,11 +165,13 @@ class CNN2dATT(nn.Module):
         loss_func: Literal["ce", "focal"] = "ce",
         focal_alpha: float = 0.5,
         focal_gamma: float = 2.0,
+        weight_kl_satt: Optional[float] = None,
     ):
         assert loss_func in ["ce", "focal"]
         assert focal_alpha >= 0.0 and focal_alpha <= 1.0
 
         self._bb_freeze = backbone_freeze
+        self._w_kl_satt = weight_kl_satt
 
         super().__init__()
 
@@ -250,9 +253,19 @@ class CNN2dATT(nn.Module):
     def step(
         self, x: torch.Tensor, y: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        pred = self.forward(x)[0]
+        pred, sscore, _ = self.forward(x)
         loss = self.criterion(pred, y)
-
+        if self._w_kl_satt is not None:
+            w, h = sscore.shape[1:-1]
+            prior = torch.zeros(w, h).to(sscore)
+            for i in range(1, min(w // 2, h // 2) + 1):
+                prior[i:-i, i:-i] += 1
+            prior = prior.flatten()
+            sscore_ft = sscore.permute(0, 3, 1, 2).flatten(0, 1).flatten(1)
+            kl_loss = kl_divergence(
+                Categorical(probs=sscore_ft), Categorical(logits=prior)
+            ).mean()
+            loss += kl_loss * self._w_kl_satt
         return loss, pred
 
     def parameters(self):

@@ -47,6 +47,7 @@ def main():
     parser.add_argument(
         "--loss_func", choices=["ce", "focal"], default="focal"
     )
+    parser.add_argument("--w_kl_satt", default=None, type=float)
 
     parser.add_argument("--device", default="cpu", type=str)
     parser.add_argument("--nepoches", default=10, type=int)
@@ -105,6 +106,7 @@ def main():
             inatt_bias=args.iatt_bias,
             inatt_temperature=args.iatt_temperature,
             loss_func=args.loss_func,
+            weight_kl_satt=args.w_kl_satt
         )
 
         # 3. train
