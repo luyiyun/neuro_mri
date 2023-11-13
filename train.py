@@ -87,6 +87,7 @@ def main():
     if args.cv is None:
         dataloaders_iter = [dataloaders_iter]
 
+    all_test_scores = []
     for foldi, (loaders, classes) in enumerate(dataloaders_iter):
         if args.cv is not None:
             logging.info("")
@@ -123,15 +124,16 @@ def main():
             monitor_metric=args.monitor_metric,
             show_message=not args.no_show_message,
         )
-        test_scores, test_pred = test_model(
-            model, loaders["test"], device=args.device, return_predict=True
-        )
-        logging.info(
-            "Test: "
-            + ", ".join(
-                ["%s:%.4f" % (k, vs[-1]) for k, vs in test_scores.items()]
+        if "test" in loaders:
+            test_scores, test_pred = test_model(
+                model, loaders["test"], device=args.device, return_predict=True
             )
-        )
+            logging.info(
+                "Test: "
+                + ", ".join(
+                    ["%s:%.4f" % (k, vs[-1]) for k, vs in test_scores.items()]
+                )
+            )
 
         # 4. saving
         if args.cv is None:
@@ -142,6 +144,8 @@ def main():
 
         save_json(args.__dict__, osp.join(save_root_i, "args.json"))
 
+        torch.save(model.state_dict(), osp.join(save_root_i, "model.pth"))
+
         hist_df = pd.DataFrame(hist["train"])
         hist_df["phase"] = "train"
         if "valid" in hist:
@@ -150,15 +154,22 @@ def main():
             hist_df = pd.concat([hist_df, hist_df_valid])
         hist_df.to_csv(osp.join(save_root_i, "hist.csv"))
 
-        save_json(test_scores, osp.join(save_root_i, "test_scores.json"))
+        if "test" in loaders:
+            save_json(test_scores, osp.join(save_root_i, "test_scores.json"))
 
-        test_df = pd.DataFrame.from_records(loaders["test"].dataset.data)
-        test_df = pd.concat(
-            [test_df, pd.DataFrame(test_pred, columns=classes)], axis=1
-        )
-        test_df.to_csv(osp.join(save_root_i, "test_pred.csv"))
+            test_df = pd.DataFrame.from_records(loaders["test"].dataset.data)
+            test_df = pd.concat(
+                [test_df, pd.DataFrame(test_pred, columns=classes)], axis=1
+            )
+            test_df.to_csv(osp.join(save_root_i, "test_pred.csv"))
 
-        torch.save(model.state_dict(), osp.join(save_root_i, "model.pth"))
+            test_scores["fold"] = foldi
+            all_test_scores.append(test_scores)
+
+    if all_test_scores:
+        all_test_scores_df = pd.DataFrame.from_records(all_test_scores)
+        print(all_test_scores_df)
+        all_test_scores_df.to_csv(osp.join(save_root, "all_test_scores.csv"))
 
 
 if __name__ == "__main__":
