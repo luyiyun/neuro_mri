@@ -233,3 +233,41 @@ def test_model(
 
     total_predict = torch.cat(total_predict).detach().cpu().numpy()
     return scores, total_predict
+
+
+def pred_model(
+    model: nn.Module,
+    loader: DataLoader,
+    device: str = "cpu",
+    return_ndarray: bool = False
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    device = torch.device(device)
+    model.to(device)
+
+    preds, sscores, iscores = [], [], []
+
+    model.eval()
+    with torch.no_grad():
+        for batch in tqdm(loader, desc="Batch(test): "):
+            x = batch["img"].to(device)
+            # y = batch["label"].to(device)
+            pred, sscore, iscore = model(x)
+            preds.append(pred)
+            sscores.append(sscore)
+            iscores.append(iscore)
+
+    preds = torch.cat(preds).detach().cpu().numpy()
+    if torch.is_tensor(sscores[0]):
+        sscores = torch.cat(sscores)
+        if return_ndarray:
+            sscores = sscores.detach().cpu().numpy()
+    else:
+        sscores = None
+    if torch.is_tensor(iscores[0]):
+        iscores = torch.cat(iscores)
+        if return_ndarray:
+            iscores = iscores.detach().cpu().numpy()
+    else:
+        iscores = None
+
+    return preds, sscores, iscores

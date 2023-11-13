@@ -1,5 +1,5 @@
-from typing import List, Literal, Optional, Tuple
 from itertools import chain
+from typing import List, Literal, Optional, Tuple
 
 import numpy as np
 import timm
@@ -216,23 +216,29 @@ class CNN2dATT(nn.Module):
     def forward(
         self, x: torch.Tensor
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
-        self._nb = x.size(0)
-        x = x.permute(0, 4, 1, 2, 3)  # (b,z,c,x,y)
-        x = x.reshape(-1, *x.shape[-3:])  # (bz,c,x,y)
-        x = self.backbone(x)[0]
+        nb, c, w, h, _ = x.shape
+        x = x.permute(0, 4, 1, 2, 3)  # (b,d,c,w,h)
+        x = x.reshape(-1, c, w, h)  # (bd,c,w,h)
+        x = self.backbone(x)[0]  # (bd,c',w',h')
 
         if self.satt is not None:
-            sscore = self.satt(x)  # (bz,1,x,y)
-            x = (x * sscore).sum(dim=(2, 3))  # (bz,c)
+            sscore = self.satt(x)  # (bd,1,w',h')
+            x = (x * sscore).sum(dim=(2, 3))  # (bd,c')
+            sscore = (
+                sscore.squeeze(1)
+                .reshape(nb, -1, *sscore.shape[-2:])
+                .permute(0, 2, 3, 1)
+            )  # (b,w',h',d)
         else:
             x = x.mean(dim=(2, 3))
             sscore = None
 
-        x = x.reshape(self._nb, -1, x.size(1))  # (b,z,c)
+        x = x.reshape(nb, -1, x.size(-1))  # (b,d,c')
 
         if self.iatt is not None:
-            iscore = self.iatt(x)  # (b,z,1)
-            xg = (x * iscore).sum(dim=1)  # (b,c)
+            iscore = self.iatt(x)  # (b,d,1)
+            xg = (x * iscore).sum(dim=1)  # (b,c')
+            iscore = iscore.squeeze(-1)  # (b,d)
         else:
             xg = x.mean(dim=1)
             iscore = None
