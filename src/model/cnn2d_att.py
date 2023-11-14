@@ -266,7 +266,7 @@ class CNN2dATT(nn.Module):
                 Categorical(probs=sscore_ft), Categorical(logits=prior)
             ).mean()
             loss += kl_loss * self._w_kl_satt
-        return loss, pred
+        return {"main": loss, "kl": kl_loss}, pred
 
     def parameters(self):
         if self._bb_freeze:

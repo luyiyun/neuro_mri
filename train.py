@@ -171,6 +171,7 @@ def main():
         print(all_test_scores_df)
         all_test_scores_df.to_csv(osp.join(save_root, "all_test_scores.csv"))
 
+    # TODO: 试用更短的backbone，更小的kl weight
 
 if __name__ == "__main__":
     main()

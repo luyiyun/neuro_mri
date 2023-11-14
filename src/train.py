@@ -94,7 +94,7 @@ def train_model(
         model.train()
         for mi in metrics.values():
             mi.reset()
-        total_loss, cnt = 0.0, 0
+        total_loss, cnt = defaultdict(float), 0
         with torch.enable_grad():
             for batch in tqdm(
                 train_loader, desc="Batch(train): ", leave=False
@@ -102,16 +102,18 @@ def train_model(
                 optimizer.zero_grad()
                 x = batch["img"].to(device)
                 y = batch["label"].to(device)
-                loss, pred = model.step(x, y)
-                loss.backward()
+                loss_dict, pred = model.step(x, y)
+                loss_dict["main"].backward()
                 optimizer.step()
 
                 # loss and metrics
-                total_loss += loss.item() * x.size(0)
                 cnt += x.size(0)
+                for k, lossi in loss_dict.items():
+                    total_loss[k] = total_loss[k] + lossi.item() * x.size(0)
                 for mi in metrics.values():
                     mi(pred[:, 1], y)
-        scores["train"]["loss"].append(total_loss / cnt)
+        for k, total_lossi in total_loss.items():
+            scores["train"][k].append(total_lossi / cnt)
         for k, mi in metrics.items():
             scores["train"][k].append(mi.compute().item())
         if show_message:
@@ -132,21 +134,23 @@ def train_model(
         model.eval()
         for mi in metrics.values():
             mi.reset()
-        total_loss, cnt = 0.0, 0
+        total_loss, cnt = defaultdict(float), 0
         with torch.no_grad():
             for batch in tqdm(
                 valid_loader, desc="Batch(valid): ", leave=False
             ):
                 x = batch["img"].to(device)
                 y = batch["label"].to(device)
-                loss, pred = model.step(x, y)
+                loss_dict, pred = model.step(x, y)
 
                 # loss and metrics
-                total_loss += loss.item() * x.size(0)
                 cnt += x.size(0)
+                for k, lossi in loss_dict.items():
+                    total_loss[k] = total_loss[k] + lossi.item() * x.size(0)
                 for mi in metrics.values():
                     mi(pred[:, 1], y)
-        scores["valid"]["loss"].append(total_loss / cnt)
+        for k, total_lossi in total_loss.items():
+            scores["valid"][k].append(total_lossi / cnt)
         for k, mi in metrics.items():
             scores["valid"][k].append(mi.compute().item())
         if show_message:
@@ -207,24 +211,26 @@ def test_model(
     for mi in metrics.values():
         mi.reset()
 
-    total_loss, cnt = 0.0, 0
+    total_loss, cnt = defaultdict(float), 0
     total_predict = []
     with torch.no_grad():
         for batch in tqdm(loader, desc="Batch(test): "):
             x = batch["img"].to(device)
             y = batch["label"].to(device)
-            loss, pred = model.step(x, y)
+            loss_dict, pred = model.step(x, y)
 
             # loss and metrics
-            total_loss += loss.item() * x.size(0)
             cnt += x.size(0)
+            for k, lossi in loss_dict.items():
+                total_loss[k] = total_loss[k] + lossi.item() * x.size(0)
             for mi in metrics.values():
                 mi(pred[:, 1], y)
 
             if return_predict:
                 total_predict.append(pred)
 
-    scores["loss"].append(total_loss / cnt)
+    for k, total_lossi in total_loss.items():
+        scores[k].append(total_lossi / cnt)
     for k, mi in metrics.items():
         scores[k].append(mi.compute().item())
 
