@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 import math
 import os
@@ -7,7 +6,6 @@ import os.path as osp
 import re
 from datetime import datetime
 from types import SimpleNamespace
-from typing import Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,12 +18,7 @@ from tqdm import tqdm
 from src.dataset import dfs2loaders
 from src.model import CNN2dATT
 from src.train import pred_model
-
-
-def read_json(fn: str) -> Dict:
-    with open(fn, "r") as f:
-        res = json.load(f)
-    return res
+from src.utils import read_json
 
 
 def process_one_run(one_run_dir: str, device: str):
