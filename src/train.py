@@ -205,7 +205,7 @@ def test_model(
     model.to(device)
 
     metrics = get_metrics(device)
-    scores = defaultdict(list)
+    scores = {}
 
     model.eval()
     for mi in metrics.values():
@@ -230,9 +230,9 @@ def test_model(
                 total_predict.append(pred)
 
     for k, total_lossi in total_loss.items():
-        scores[k].append(total_lossi / cnt)
+        scores[k] = total_lossi / cnt
     for k, mi in metrics.items():
-        scores[k].append(mi.compute().item())
+        scores[k] = mi.compute().item()
 
     if not return_predict:
         return scores
@@ -245,7 +245,7 @@ def pred_model(
     model: nn.Module,
     loader: DataLoader,
     device: str = "cpu",
-    return_ndarray: bool = False
+    return_ndarray: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     device = torch.device(device)
     model.to(device)
