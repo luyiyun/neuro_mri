@@ -100,7 +100,7 @@ def main():
             index_names += args.config
         all_test_scores = (
             all_test_scores.drop(columns=["fold"])
-            .groupby(index_names)
+            .groupby(index_names, dropna=False)
             .agg(lambda x: "%.4f±%.4f" % (x.mean(), x.std()))
         )
         print(all_test_scores)
