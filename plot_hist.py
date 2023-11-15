@@ -25,8 +25,9 @@ def main():
     parser.add_argument("--run_dirs", default=None, type=str, nargs="+")
     parser.add_argument("--save_fn", default=None, type=str)
     parser.add_argument(
-        "--phase", default="valid", choices=["valid", "train", "all"]
+        "--phase", default="all", choices=["valid", "train", "all"]
     )
+    parser.add_argument("--metric", default=None, type=str, nargs="+")
     parser.add_argument("--config", default=None, nargs="+", type=str)
     args = parser.parse_args()
 
@@ -94,16 +95,18 @@ def main():
     hists.reset_index(names="epoch", inplace=True)  # the epoch is the index
 
     # 3. plot the losses
-    ncol = 2 if args.phase == "all" else 1
-    nrow = 2
     metric_mapping = {
         "main": "Total Loss",
         "bacc": "Balanced Accuracy",
         "acc": "Accuracy",
-        "AUC": "Area Under ROC curver",
+        "auc": "Area Under ROC curver",
         "sensitivity": "Sensitivity",
         "specificity": "Specificity",
     }
+    phases = ["train", "valid"] if args.phase == "all" else [args.phase]
+    metrics = metric_mapping.keys() if args.metric is None else args.metric
+    ncol = len(phases)
+    nrow = len(metrics)
 
     fig, axs = plt.subplots(
         nrows=nrow,
@@ -113,11 +116,9 @@ def main():
         layout="constrained",
     )
     all_handles, all_labels = [], []
-    for j, phase in enumerate(
-        ["train", "valid"] if args.phase == "all" else [args.phase]
-    ):
+    for j, phase in enumerate(phases):
         sub_data = hists.query("phase == '%s'" % phase)
-        for i, metric in enumerate(["main", "bacc"]):
+        for i, metric in enumerate(metrics):
             ax = axs[i, j]
             sns.lineplot(
                 data=sub_data,
@@ -146,12 +147,14 @@ def main():
         new_all_labels = []
         for li in all_labels:
             configi = config_mappings[li]
-            new_li = ",".join([
-                "%s=%.3f" % (k, configi.get(k, ""))
-                if isinstance(configi.get(k, ""), float)
-                else "%s=%s" % (k, str(configi.get(k, "")))
-                for k in args.config
-            ])
+            new_li = ",".join(
+                [
+                    "%s=%.3f" % (k, configi.get(k, ""))
+                    if isinstance(configi.get(k, ""), float)
+                    else "%s=%s" % (k, str(configi.get(k, "")))
+                    for k in args.config
+                ]
+            )
             new_all_labels.append(new_li)
         all_labels = new_all_labels
     fig.legend(
