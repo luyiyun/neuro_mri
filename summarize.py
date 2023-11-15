@@ -74,7 +74,7 @@ def main():
             if args.config is not None:
                 configs = read_json(osp.join(fdir, "args.json"))
                 for confi in args.config:
-                    test_scores_i[confi] = configs[confi]
+                    test_scores_i[confi] = configs.get(confi, "")
             all_test_scores.append(test_scores_i)
             continue
 
@@ -89,7 +89,7 @@ def main():
                 if args.config is not None:
                     configs = read_json(osp.join(fdir, subdir, "args.json"))
                     for confi in args.config:
-                        test_scores_i[confi] = configs[confi]
+                        test_scores_i[confi] = configs.get(confi, "")
                 all_test_scores.append(test_scores_i)
 
     all_test_scores = pd.DataFrame.from_records(all_test_scores)

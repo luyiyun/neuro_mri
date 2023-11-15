@@ -24,6 +24,7 @@ def main():
     parser.add_argument("--seed", default=2022, type=int)
 
     parser.add_argument("--no_backbone_pretrained", action="store_true")
+    parser.add_argument("--backbone_feature_index", default=None, type=int)
     parser.add_argument("--backbone_freeze", action="store_true")
     parser.add_argument("--no_satt", action="store_true")
     parser.add_argument(
@@ -92,6 +93,7 @@ def main():
         # 2. model
         model = CNN2dATT(
             backbone_pretrained=not args.no_backbone_pretrained,
+            backbone_feature_index=args.backbone_feature_index,
             backbone_freeze=args.backbone_freeze,
             spatial_attention=not args.no_satt,
             spatt_hiddens=args.satt_hiddens,
@@ -103,7 +105,7 @@ def main():
             inatt_bias=args.iatt_bias,
             inatt_temperature=args.iatt_temperature,
             loss_func=args.loss_func,
-            weight_kl_satt=args.w_kl_satt
+            weight_kl_satt=args.w_kl_satt,
         )
 
         # 3. train
@@ -127,7 +129,7 @@ def main():
             logging.info(
                 "Test: "
                 + ", ".join(
-                    ["%s:%.4f" % (k, vs[-1]) for k, vs in test_scores.items()]
+                    ["%s:%.4f" % (k, v) for k, v in test_scores.items()]
                 )
             )
 
@@ -168,6 +170,7 @@ def main():
         all_test_scores_df.to_csv(osp.join(save_root, "all_test_scores.csv"))
 
     # TODO: 试用更短的backbone，更小的kl weight
+
 
 if __name__ == "__main__":
     main()

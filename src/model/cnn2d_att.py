@@ -12,16 +12,30 @@ from torch.distributions import Categorical, kl_divergence
 def get_resnet_bone(
     name: str = "resnet50",
     pretrained: bool = True,
+    feature_index: Optional[int] = None,
     in_dims: int = 1,
 ) -> nn.Module:
+    if name not in ["resnet18", "resnet50"]:
+        raise NotImplementedError
+
+    if name in ["resnet18", "resnet34"]:
+        if feature_index is None:
+            feature_index = 4
+        out_dims = [64, 64, 128, 256, 512][feature_index]
+    elif name in ["resnet50", "resnet101", "resnet152"]:
+        if feature_index is None:
+            feature_index = 2
+        out_dims = [64, 256, 512, 1024, 2048][feature_index]
+    else:
+        raise ValueError("The model is not available.")
+
     model = timm.create_model(
         name,
         pretrained=pretrained,
         in_chans=in_dims,
         features_only=True,
-        out_indices=[4] if name in ["resnet18"] else [3],
+        out_indices=[feature_index]
     )
-    out_dims = 512 if name == "resnet18" else 1024
     return model, out_dims
 
 
@@ -148,6 +162,7 @@ class CNN2dATT(nn.Module):
         nclasses: int = 2,
         backbone: str = "resnet18",
         backbone_pretrained: bool = True,
+        backbone_feature_index: Optional[int] = None,
         backbone_freeze: bool = False,
         spatial_attention: bool = True,
         spatt_hiddens: List[int] = [256, 256],
@@ -178,7 +193,10 @@ class CNN2dATT(nn.Module):
         # 1. CNN backbone
         if backbone.startswith(backbone):
             self.backbone, backbone_outdims = get_resnet_bone(
-                backbone, backbone_pretrained, nchannels
+                backbone,
+                backbone_pretrained,
+                backbone_feature_index,
+                nchannels,
             )
         else:
             raise NotImplementedError
@@ -266,7 +284,8 @@ class CNN2dATT(nn.Module):
                 Categorical(probs=sscore_ft), Categorical(logits=prior)
             ).mean()
             loss += kl_loss * self._w_kl_satt
-        return {"main": loss, "kl": kl_loss}, pred
+            return {"main": loss, "kl": kl_loss}, pred
+        return {"main": loss}, pred
 
     def parameters(self):
         if self._bb_freeze:
