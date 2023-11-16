@@ -270,7 +270,7 @@ class CNN2dATT(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         pred, sscore, _ = self.forward(x)
         loss = self.criterion(pred, y)
-        if self._w_kl_satt is not None:
+        if self.satt is not None and self._w_kl_satt is not None:
             w, h = sscore.shape[1:-1]
             prior = torch.zeros(w, h).to(sscore)
             for i in range(1, min(w // 2, h // 2) + 1):

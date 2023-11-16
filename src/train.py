@@ -62,7 +62,7 @@ def train_model(
     early_stop: bool = True,
     early_stop_patience: int = 5,
     monitor_metric: Literal["bacc", "acc", "auc"] = "bacc",
-    show_message: bool = True,
+    message_level: int = 2,
 ) -> Dict:
     if model_checkpoint and (valid_loader is None):
         warnings.warn(
@@ -89,7 +89,7 @@ def train_model(
     if early_stop:
         n_no_improve = 0
 
-    for e in tqdm(range(nepoches), desc="Epoch: "):
+    for e in tqdm(range(nepoches), desc="Epoch: ", disable=message_level <= 0):
         # train loop
         model.train()
         for mi in metrics.values():
@@ -97,7 +97,10 @@ def train_model(
         total_loss, cnt = defaultdict(float), 0
         with torch.enable_grad():
             for batch in tqdm(
-                train_loader, desc="Batch(train): ", leave=False
+                train_loader,
+                desc="Batch(train): ",
+                leave=False,
+                disable=message_level <= 0,
             ):
                 optimizer.zero_grad()
                 x = batch["img"].to(device)
@@ -116,7 +119,7 @@ def train_model(
             scores["train"][k].append(total_lossi / cnt)
         for k, mi in metrics.items():
             scores["train"][k].append(mi.compute().item())
-        if show_message:
+        if message_level >= 2:
             tqdm.write(
                 "Train: "
                 + ", ".join(
@@ -153,7 +156,7 @@ def train_model(
             scores["valid"][k].append(total_lossi / cnt)
         for k, mi in metrics.items():
             scores["valid"][k].append(mi.compute().item())
-        if show_message:
+        if message_level >= 2:
             tqdm.write(
                 "Valid: "
                 + ", ".join(

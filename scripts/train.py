@@ -1,8 +1,8 @@
-import sys
 import argparse
 import logging
 import os
 import os.path as osp
+import sys
 from datetime import datetime
 
 import pandas as pd
@@ -57,7 +57,15 @@ def main():
     parser.add_argument(
         "--monitor_metric", choices=["bacc", "acc", "auc"], default="bacc"
     )
-    parser.add_argument("--no_show_message", action="store_true")
+    parser.add_argument(
+        "--message_level",
+        default=2,
+        type=int,
+        help=(
+            "2 means all messages, 1 means all messages "
+            "but epoch print, 0 means no message."
+        ),
+    )
     args = parser.parse_args()
 
     if args.save_root is None:
@@ -124,7 +132,7 @@ def main():
             early_stop=not args.no_early_stop,
             early_stop_patience=args.early_stop_patience,
             monitor_metric=args.monitor_metric,
-            show_message=not args.no_show_message,
+            message_level=args.message_level,
         )
         if "test" in loaders:
             test_scores, test_pred = test_model(
