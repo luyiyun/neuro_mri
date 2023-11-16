@@ -23,6 +23,7 @@ def main():
     parser.add_argument("--test_size", default=0.2, type=float)
     parser.add_argument("--seed", default=2022, type=int)
 
+    parser.add_argument("--backbone", default="resnet18", type=str)
     parser.add_argument("--no_backbone_pretrained", action="store_true")
     parser.add_argument("--backbone_feature_index", default=None, type=int)
     parser.add_argument("--backbone_freeze", action="store_true")
@@ -92,6 +93,7 @@ def main():
 
         # 2. model
         model = CNN2dATT(
+            backbone=args.backbone,
             backbone_pretrained=not args.no_backbone_pretrained,
             backbone_feature_index=args.backbone_feature_index,
             backbone_freeze=args.backbone_freeze,

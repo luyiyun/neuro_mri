@@ -15,9 +15,6 @@ def get_resnet_bone(
     feature_index: Optional[int] = None,
     in_dims: int = 1,
 ) -> nn.Module:
-    if name not in ["resnet18", "resnet50"]:
-        raise NotImplementedError
-
     if name in ["resnet18", "resnet34"]:
         if feature_index is None:
             feature_index = 4
@@ -191,7 +188,7 @@ class CNN2dATT(nn.Module):
         super().__init__()
 
         # 1. CNN backbone
-        if backbone.startswith(backbone):
+        if backbone.startswith("resnet"):
             self.backbone, backbone_outdims = get_resnet_bone(
                 backbone,
                 backbone_pretrained,
