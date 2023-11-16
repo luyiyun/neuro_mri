@@ -25,16 +25,16 @@ def main():
     parser.add_argument("--test_size", default=0.2, type=float)
     parser.add_argument("--seed", default=2022, type=int)
 
-    parser.add_argument("--backbone", default="resnet18", type=str)
+    parser.add_argument("--backbone", default="resnet34", type=str)
     parser.add_argument("--no_backbone_pretrained", action="store_true")
     parser.add_argument("--backbone_feature_index", default=None, type=int)
     parser.add_argument("--backbone_freeze", action="store_true")
     parser.add_argument("--no_satt", action="store_true")
     parser.add_argument(
-        "--satt_hiddens", nargs="*", default=[256, 256], type=int
+        "--satt_hiddens", nargs="*", default=[256], type=int
     )
     parser.add_argument(
-        "--satt_acts", nargs="*", default=["tanh", "tanh"], type=str
+        "--satt_acts", nargs="*", default=["tanh"], type=str
     )
     parser.add_argument("--no_satt_bn", action="store_true")
     parser.add_argument("--satt_dp", default=None, type=float)
@@ -45,7 +45,7 @@ def main():
     parser.add_argument(
         "--loss_func", choices=["ce", "focal"], default="focal"
     )
-    parser.add_argument("--w_kl_satt", default=None, type=float)
+    parser.add_argument("--w_kl_satt", default=0.05, type=float)
 
     parser.add_argument("--device", default="cpu", type=str)
     parser.add_argument("--nepoches", default=10, type=int)
@@ -59,7 +59,7 @@ def main():
     )
     parser.add_argument(
         "--message_level",
-        default=2,
+        default=1,
         type=int,
         help=(
             "2 means all messages, 1 means all messages "

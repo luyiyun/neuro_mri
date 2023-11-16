@@ -31,9 +31,28 @@ def get_resnet_bone(
         pretrained=pretrained,
         in_chans=in_dims,
         features_only=True,
-        out_indices=[feature_index]
+        out_indices=[feature_index],
     )
     return model, out_dims
+
+
+def kl_div_sscore(
+    sscore: torch.Tensor, prior_type: Literal["center"] = "center"
+) -> torch.Tensor:
+    w, h = sscore.shape[1:-1]
+    prior = torch.zeros(w, h).to(sscore)
+    if prior_type == "center":
+        for i in range(1, min(w // 2, h // 2) + 1):
+            prior[i:-i, i:-i] += 1
+        prior = prior.flatten()
+        sscore_ft = sscore.permute(0, 3, 1, 2).flatten(0, 1).flatten(1)
+        kl_loss = kl_divergence(
+            Categorical(probs=sscore_ft), Categorical(logits=prior)
+        ).mean()
+    else:
+        raise NotImplementedError
+
+    return kl_loss
 
 
 class SpatialAttention(nn.Module):
@@ -271,16 +290,8 @@ class CNN2dATT(nn.Module):
         pred, sscore, _ = self.forward(x)
         loss = self.criterion(pred, y)
         if self.satt is not None and self._w_kl_satt is not None:
-            w, h = sscore.shape[1:-1]
-            prior = torch.zeros(w, h).to(sscore)
-            for i in range(1, min(w // 2, h // 2) + 1):
-                prior[i:-i, i:-i] += 1
-            prior = prior.flatten()
-            sscore_ft = sscore.permute(0, 3, 1, 2).flatten(0, 1).flatten(1)
-            kl_loss = kl_divergence(
-                Categorical(probs=sscore_ft), Categorical(logits=prior)
-            ).mean()
-            loss += kl_loss * self._w_kl_satt
+            kl_loss = kl_div_sscore(sscore, "center")
+            loss += self._w_kl_satt * kl_loss
             return {"main": loss, "kl": kl_loss}, pred
         return {"main": loss}, pred
 
