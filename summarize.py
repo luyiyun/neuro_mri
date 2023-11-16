@@ -3,12 +3,11 @@ import logging
 import os
 import os.path as osp
 import re
-from datetime import datetime
 from typing import Dict
 
 import pandas as pd
 
-from src.utils import read_json
+from src.utils import read_json, get_config_from_args, filter_runs
 
 
 def read_test_score(fn: str) -> Dict:
@@ -36,34 +35,7 @@ def main():
             {"fdir": osp.join(args.root, args.run_dir), "dir": args.run_dir}
         ]
     else:
-        run_dirs = [
-            {"fdir": osp.join(args.root, di), "dir": di}
-            for di in os.listdir(args.root)
-        ]
-        run_dirs = filter(lambda x: osp.isdir(x["fdir"]), run_dirs)
-        if args.start is not None or args.end is not None:
-            # 只选择那些是时间命名的路径
-            run_dirs = filter(
-                lambda x: re.search(
-                    r"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}", x["dir"]
-                ),
-                run_dirs,
-            )
-        if args.start is not None:
-            start_time = datetime.fromisoformat(args.start)
-            run_dirs = filter(
-                lambda x: datetime.strptime(x["dir"], "%Y-%m-%d_%H-%M-%S")
-                >= start_time,
-                run_dirs,
-            )
-        if args.end is not None:
-            end_time = datetime.fromisoformat(args.end)
-            run_dirs = filter(
-                lambda x: datetime.strptime(x["dir"], "%Y-%m-%d_%H-%M-%S")
-                <= end_time,
-                run_dirs,
-            )
-        run_dirs = sorted(run_dirs, key=lambda x: x["dir"])
+        run_dirs = filter_runs(args.root, args.start, args.end)
 
     all_test_scores = []
     for runi in run_dirs:
@@ -73,8 +45,8 @@ def main():
             test_scores_i["run"] = runi["dir"]
             if args.config is not None:
                 configs = read_json(osp.join(fdir, "args.json"))
-                for confi in args.config:
-                    test_scores_i[confi] = configs.get(confi, "")
+                for k in args.config:
+                    test_scores_i[k] = get_config_from_args(configs, k)
             all_test_scores.append(test_scores_i)
             continue
 
@@ -88,8 +60,8 @@ def main():
                 test_scores_i["fold"] = int(match_res.group(1))
                 if args.config is not None:
                     configs = read_json(osp.join(fdir, subdir, "args.json"))
-                    for confi in args.config:
-                        test_scores_i[confi] = configs.get(confi, "")
+                    for k in args.config:
+                        test_scores_i[k] = get_config_from_args(configs, k)
                 all_test_scores.append(test_scores_i)
 
     all_test_scores = pd.DataFrame.from_records(all_test_scores)

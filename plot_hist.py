@@ -3,13 +3,12 @@ import logging
 import os
 import os.path as osp
 import re
-from datetime import datetime
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from src.utils import read_json
+from src.utils import read_json, get_config_from_args, filter_runs
 
 
 def main():
@@ -38,34 +37,7 @@ def main():
             for runi in args.run_dirs
         ]
     else:
-        run_dirs = [
-            {"fdir": osp.join(args.root, di), "dir": di}
-            for di in os.listdir(args.root)
-        ]
-        run_dirs = filter(lambda x: osp.isdir(x["fdir"]), run_dirs)
-        if args.start is not None or args.end is not None:
-            # 只选择那些是时间命名的路径
-            run_dirs = filter(
-                lambda x: re.search(
-                    r"\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}", x["dir"]
-                ),
-                run_dirs,
-            )
-        if args.start is not None:
-            start_time = datetime.fromisoformat(args.start)
-            run_dirs = filter(
-                lambda x: datetime.strptime(x["dir"], "%Y-%m-%d_%H-%M-%S")
-                >= start_time,
-                run_dirs,
-            )
-        if args.end is not None:
-            end_time = datetime.fromisoformat(args.end)
-            run_dirs = filter(
-                lambda x: datetime.strptime(x["dir"], "%Y-%m-%d_%H-%M-%S")
-                <= end_time,
-                run_dirs,
-            )
-        run_dirs = sorted(run_dirs, key=lambda x: x["dir"])
+        run_dirs = filter_runs(args.root, args.start, args.end)
 
     # 2. load the training histories
     hists, config_mappings = [], {}
@@ -149,9 +121,9 @@ def main():
             configi = config_mappings[li]
             new_li = ",".join(
                 [
-                    "%s=%.3f" % (k, configi.get(k, ""))
-                    if isinstance(configi.get(k, ""), float)
-                    else "%s=%s" % (k, str(configi.get(k, "")))
+                    "%s=%.3f" % (k, get_config_from_args(configi, k))
+                    if isinstance(get_config_from_args(configi, k), float)
+                    else "%s=%s" % (k, str(get_config_from_args(configi, k)))
                     for k in args.config
                 ]
             )
