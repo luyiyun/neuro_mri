@@ -1,3 +1,4 @@
+import sys
 import argparse
 import logging
 import os
@@ -7,6 +8,7 @@ from datetime import datetime
 import pandas as pd
 import torch
 
+sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
 from src.dataset import get_loaders
 from src.model import CNN2dATT
 from src.train import test_model, train_model

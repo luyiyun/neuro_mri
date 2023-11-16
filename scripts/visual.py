@@ -1,3 +1,4 @@
+import sys
 import argparse
 import logging
 import math
@@ -15,6 +16,7 @@ import torch
 from monai.transforms import Resize
 from tqdm import tqdm
 
+sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
 from src.dataset import dfs2loaders
 from src.model import CNN2dATT
 from src.train import pred_model

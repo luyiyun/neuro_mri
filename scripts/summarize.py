@@ -1,3 +1,4 @@
+import sys
 import argparse
 import logging
 import os
@@ -7,6 +8,7 @@ from typing import Dict
 
 import pandas as pd
 
+sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
 from src.utils import read_json, get_config_from_args, filter_runs
 
 
