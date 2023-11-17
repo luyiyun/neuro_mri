@@ -61,6 +61,9 @@ def train_model(
     model_checkpoint: bool = True,
     early_stop: bool = True,
     early_stop_patience: int = 5,
+    lr_schedual: bool = False,
+    lr_sch_factor: float = 0.1,
+    lr_sch_patience: int = 5,
     monitor_metric: Literal["bacc", "acc", "auc"] = "bacc",
     message_level: int = 2,
 ) -> Dict:
@@ -70,11 +73,24 @@ def train_model(
         )
     if early_stop and (valid_loader is None):
         warnings.warn("early_stop only works when valid_loader is available.")
+    if lr_schedual and (valid_loader is None):
+        warnings.warn("lr_schedual only works when valid_loader is available.")
 
     device = torch.device(device)
     model.to(device)
 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    if valid_loader is not None and lr_schedual:
+        lr_sch = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            "max",
+            factor=lr_sch_factor,
+            patience=lr_sch_patience,
+            threshold=0.0,
+            threshold_mode="abs",
+            min_lr=1e-6,
+            verbose=True,
+        )
 
     metrics = get_metrics(device)
     scores = {"train": defaultdict(list)}
@@ -167,8 +183,9 @@ def train_model(
                 )
             )
 
-        if model_checkpoint or early_stop:
+        if model_checkpoint or early_stop or lr_schedual:
             now_score = scores["valid"][monitor_metric][-1]
+        if model_checkpoint or early_stop:
             flag_improve = now_score > best_score
             if flag_improve:
                 best_score = now_score
@@ -187,6 +204,8 @@ def train_model(
                         % (monitor_metric, early_stop_patience)
                     )
                     break
+        if lr_schedual:
+            lr_sch.step(now_score)
 
     if valid_loader is not None and model_checkpoint:
         model.load_state_dict(best_model)

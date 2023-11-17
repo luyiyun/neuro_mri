@@ -42,10 +42,14 @@ def main():
     parser.add_argument("--iatt_hidden", default=256, type=int)
     parser.add_argument("--iatt_bias", action="store_true")
     parser.add_argument("--iatt_temperature", default=1.0, type=float)
+    parser.add_argument("--w_kl_satt", default=0.05, type=float)
+    parser.add_argument("--mlp_hiddens", default=[], nargs="*", type=int)
+    parser.add_argument("--mlp_act", default="relu", type=str)
+    parser.add_argument("--no_mlp_bn", action="store_true")
+    parser.add_argument("--mlp_dp", default=None, type=float)
     parser.add_argument(
         "--loss_func", choices=["ce", "focal"], default="focal"
     )
-    parser.add_argument("--w_kl_satt", default=0.05, type=float)
 
     parser.add_argument("--device", default="cpu", type=str)
     parser.add_argument("--nepoches", default=10, type=int)
@@ -54,6 +58,9 @@ def main():
     parser.add_argument("--no_modelcheckpoint", action="store_true")
     parser.add_argument("--no_early_stop", action="store_true")
     parser.add_argument("--early_stop_patience", default=10, type=int)
+    parser.add_argument("--lr_schedual", action="store_true")
+    parser.add_argument("--lr_sch_factor", default=0.1, type=float)
+    parser.add_argument("--lr_sch_patience", default=5, type=int)
     parser.add_argument(
         "--monitor_metric", choices=["bacc", "acc", "auc"], default="bacc"
     )
@@ -116,6 +123,10 @@ def main():
             inatt_hidden=args.iatt_hidden,
             inatt_bias=args.iatt_bias,
             inatt_temperature=args.iatt_temperature,
+            mlp_hiddens=args.mlp_hiddens,
+            mlp_act=args.mlp_act,
+            mlp_bn=not args.no_mlp_bn,
+            mlp_dp=args.mlp_dp,
             loss_func=args.loss_func,
             weight_kl_satt=args.w_kl_satt,
         )
@@ -131,6 +142,9 @@ def main():
             model_checkpoint=not args.no_modelcheckpoint,
             early_stop=not args.no_early_stop,
             early_stop_patience=args.early_stop_patience,
+            lr_schedual=args.lr_schedual,
+            lr_sch_factor=args.lr_sch_factor,
+            lr_sch_patience=args.lr_sch_patience,
             monitor_metric=args.monitor_metric,
             message_level=args.message_level,
         )
