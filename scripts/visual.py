@@ -1,19 +1,22 @@
-import sys
 import argparse
 import logging
 import math
 import os
 import os.path as osp
 import re
+import sys
 from datetime import datetime
 from types import SimpleNamespace
 
 import matplotlib.pyplot as plt
+import nibabel as nib
 import numpy as np
 import pandas as pd
 import scipy.special as ssp
 import torch
 from monai.transforms import Resize
+from nibabel.nifti1 import Nifti1Image
+from scipy import ndimage
 from tqdm import tqdm
 
 sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
@@ -23,7 +26,9 @@ from src.train import pred_model
 from src.utils import read_json
 
 
-def process_one_run(one_run_dir: str, device: str):
+def process_one_run(one_run_dir: str, device: str, save_type: str = "png"):
+    assert save_type in ["png", "nii"]
+
     trained_args = SimpleNamespace(
         **read_json(osp.join(one_run_dir, "args.json"))
     )
@@ -48,7 +53,9 @@ def process_one_run(one_run_dir: str, device: str):
     # 2. model
     logging.info("load test dataset.")
     model = CNN2dATT(
+        backbone=trained_args.backbone,
         backbone_pretrained=not trained_args.no_backbone_pretrained,
+        backbone_feature_index=trained_args.backbone_feature_index,
         backbone_freeze=trained_args.backbone_freeze,
         spatial_attention=not trained_args.no_satt,
         spatt_hiddens=trained_args.satt_hiddens,
@@ -60,6 +67,7 @@ def process_one_run(one_run_dir: str, device: str):
         inatt_bias=trained_args.iatt_bias,
         inatt_temperature=trained_args.iatt_temperature,
         loss_func=trained_args.loss_func,
+        weight_kl_satt=trained_args.w_kl_satt,
     )
     model.load_state_dict(
         torch.load(osp.join(one_run_dir, "model.pth"), map_location=device)
@@ -83,11 +91,13 @@ def process_one_run(one_run_dir: str, device: str):
 
     sscores = sscores.detach().cpu().numpy()
     iscores = iscores.detach().cpu().numpy()
+
     for i, sample in tqdm(
         enumerate(loader.dataset),
         desc="Visual(test): ",
         total=len(loader.dataset),
     ):
+        fname = osp.basename(test_pred_df[fn_col].iloc[i])[:-4]
         img = sample["img"][0].cpu().numpy()  # w,h,d
         label = test_pred_df[label_col].iloc[i]
 
@@ -95,30 +105,37 @@ def process_one_run(one_run_dir: str, device: str):
         iscorei = iscores[i]  # d
         predi = preds_proba[i]
 
-        ncol = math.ceil(math.sqrt(img.shape[-1]))
-        nrow = math.ceil(img.shape[-1] / ncol)
-        fig, axs = plt.subplots(
-            nrows=nrow, ncols=ncol, figsize=(ncol * 3, nrow * 3)
-        )
-        axs = axs.flatten()
-        for j in range(img.shape[-1]):
-            axs[j].imshow(img[..., j], cmap="gray")
-            axs[j].imshow(sscorei[..., j], cmap="jet", alpha=0.3)
-            axs[j].set_title("%.4f" % (iscorei[j]))
-        title = "True=%s, Prob(%s)=%.2f, Prob(%s)=%.2f" % (
-            label,
-            classes[0],
-            predi[0],
-            classes[1],
-            predi[1],
-        )
-        fig.suptitle(title)
-        fig.tight_layout()
+        if save_type == "png":
+            ncol = math.ceil(math.sqrt(img.shape[-1]))
+            nrow = math.ceil(img.shape[-1] / ncol)
+            fig, axs = plt.subplots(
+                nrows=nrow, ncols=ncol, figsize=(ncol * 3, nrow * 3)
+            )
+            axs = axs.flatten()
+            for j in range(img.shape[-1]):
+                axs[j].imshow(ndimage.rotate(img[..., j], 90), cmap="gray")
+                axs[j].imshow(
+                    ndimage.rotate(sscorei[..., j], 90), cmap="jet", alpha=0.3
+                )
+                axs[j].set_title("%.4f" % (iscorei[j]))
+            title = "True=%s, Prob(%s)=%.2f, Prob(%s)=%.2f" % (
+                label,
+                classes[0],
+                predi[0],
+                classes[1],
+                predi[1],
+            )
+            fig.suptitle(title)
+            fig.tight_layout()
 
-        fname = osp.basename(test_pred_df[fn_col].iloc[i])[:-4]
-        visual_name = osp.join(visual_path, label, fname + ".png")
-        fig.savefig(visual_name)
-        plt.close()
+            visual_name = osp.join(visual_path, label, fname + ".png")
+            fig.savefig(visual_name)
+            plt.close()
+        elif save_type == "nii":
+            nii_img = Nifti1Image(sscorei, np.eye(4))
+            nib.save(nii_img, osp.join(visual_path, label, fname + ".nii.gz"))
+        else:
+            raise NotImplementedError
 
 
 def main():
@@ -131,6 +148,7 @@ def main():
     )
     parser.add_argument("--run_dir", default=None, type=str)
     parser.add_argument("--device", default="cpu", type=str)
+    parser.add_argument("--save_type", default="png", choices=["nii", "png"])
     args = parser.parse_args()
 
     # select the running results
@@ -166,7 +184,7 @@ def main():
     for res_dir_sub in res_dir_subs:
         logging.info("")
         logging.info("process run %s" % res_dir_sub)
-        process_one_run(res_dir_sub, args.device)
+        process_one_run(res_dir_sub, args.device, args.save_type)
 
 
 if __name__ == "__main__":
