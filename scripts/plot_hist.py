@@ -1,16 +1,17 @@
-import sys
 import argparse
 import logging
 import os
 import os.path as osp
 import re
+import sys
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
 sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
-from src.utils import read_json, get_config_from_args, filter_runs
+from src.utils import (filter_runs_by_configs, filter_runs_by_datetime,
+                       get_config_from_args, parse_config, read_json)
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
         "--phase", default="all", choices=["valid", "train", "all"]
     )
     parser.add_argument("--metric", default=None, type=str, nargs="+")
-    parser.add_argument("--config", default=None, nargs="+", type=str)
+    parser.add_argument("--config", default=None, nargs="+", type=parse_config)
     args = parser.parse_args()
 
     # 1. select the runs
@@ -39,9 +40,13 @@ def main():
             for runi in args.run_dirs
         ]
     else:
-        run_dirs = filter_runs(args.root, args.start, args.end)
+        run_dirs = filter_runs_by_datetime(args.root, args.start, args.end)
 
-    # 2. load the training histories
+    # 2. Filter runs by config
+    if args.config is not None:
+        run_dirs = filter_runs_by_configs(run_dirs, args.config)
+
+    # 3. load the training histories TODO: 直接利用run_dirs中的configs
     hists, config_mappings = [], {}
     for runi in run_dirs:
         fdir = runi["fdir"]
@@ -68,7 +73,7 @@ def main():
     hists = pd.concat(hists, axis=0)
     hists.reset_index(names="epoch", inplace=True)  # the epoch is the index
 
-    # 3. plot the losses
+    # 4. plot the losses
     metric_mapping = {
         "main": "Total Loss",
         "bacc": "Balanced Accuracy",
@@ -137,7 +142,7 @@ def main():
         loc="outside right center",
     )
 
-    # 4. saving
+    # 5. saving
     if args.save_fn is None:
         save_fn = osp.join(args.root, "plot_hist_%s.png" % args.phase)
     else:
