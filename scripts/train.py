@@ -52,7 +52,7 @@ def main():
     )
 
     parser.add_argument("--device", default="cpu", type=str)
-    parser.add_argument("--nepoches", default=10, type=int)
+    parser.add_argument("--nepoches", default=50, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
     parser.add_argument("--save_root", default=None, type=str)
     parser.add_argument("--no_modelcheckpoint", action="store_true")
