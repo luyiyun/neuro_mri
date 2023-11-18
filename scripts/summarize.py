@@ -103,8 +103,18 @@ def main():
     def _sort_summary(df):
         if "fold" in df.columns:
             df = df.sort_values("fold")
-            run_id = df.columns.get_loc("run")
-            df_metric = df.iloc[:, :run_id]
+            metric_cols = df.columns.isin(
+                [
+                    "main",
+                    "kl",
+                    "bacc",
+                    "acc",
+                    "auc",
+                    "sensitivity",
+                    "specificity",
+                ]
+            )
+            df_metric = df.loc[:, metric_cols]
             df_summ = pd.DataFrame(
                 {"mean": df_metric.mean(axis=0), "std": df_metric.std(axis=0)}
             ).T.reset_index(names="fold")
@@ -120,6 +130,11 @@ def main():
     if "fold" in all_test_scores.columns:
         index_names.append("fold")
     all_test_scores = all_test_scores.set_index(index_names)
+
+    # with pd.option_context(
+    #     "display.max_rows", None, "display.max_columns", None
+    # ):  # more options can be specified also
+    #     print(all_test_scores)
     print(all_test_scores)
 
 
