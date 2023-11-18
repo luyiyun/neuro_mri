@@ -222,6 +222,7 @@ def test_model(
     loader: DataLoader,
     device: str = "cpu",
     return_predict: bool = True,
+    progress_bar: bool = True,
 ) -> Union[Dict, Tuple[Dict, np.ndarray]]:
     device = torch.device(device)
     model.to(device)
@@ -236,7 +237,9 @@ def test_model(
     total_loss, cnt = defaultdict(float), 0
     total_predict = []
     with torch.no_grad():
-        for batch in tqdm(loader, desc="Batch(test): "):
+        for batch in tqdm(
+            loader, desc="Batch(test): ", disable=not progress_bar
+        ):
             x = batch["img"].to(device)
             y = batch["label"].to(device)
             loss_dict, pred = model.step(x, y)

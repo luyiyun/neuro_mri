@@ -66,14 +66,19 @@ class SpatialAttention(nn.Module):
     ) -> None:
         super().__init__()
         layers = []
-        for i, o, ai in zip([in_channel] + hiddens[:-1], hiddens, activations):
-            layers.append(nn.Conv2d(i, o, 1))
-            if bn:
-                layers.append(nn.BatchNorm2d(o))
-            layers.append(Act[ai]())
-            if dp is not None:
-                layers.append(nn.Dropout2d(dp))
-        layers.append(nn.Conv2d(hiddens[-1], 1, 1))
+        if len(hiddens) > 0:
+            for i, o, ai in zip(
+                [in_channel] + hiddens[:-1], hiddens, activations
+            ):
+                layers.append(nn.Conv2d(i, o, 1))
+                if bn:
+                    layers.append(nn.BatchNorm2d(o))
+                layers.append(Act[ai]())
+                if dp is not None:
+                    layers.append(nn.Dropout2d(dp))
+            layers.append(nn.Conv2d(hiddens[-1], 1, 1))
+        else:
+            layers.append(nn.Conv2d(in_channel, 1, 1))
         self._net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

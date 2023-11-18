@@ -1,6 +1,7 @@
 **/__pycache__/
 .*
 !.gitignore
+**/*.db
 # bak
 # outputs/
 # notebooks/data
