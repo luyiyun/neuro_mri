@@ -71,7 +71,13 @@ def process_one_run(one_run_dir: str, device: str, save_type: str = "png"):
         inatt_hidden=trained_args.iatt_hidden,
         inatt_bias=trained_args.iatt_bias,
         inatt_temperature=trained_args.iatt_temperature,
+        mlp_hiddens=trained_args.mlp_hiddens,
+        mlp_act=trained_args.mlp_act,
+        mlp_bn=not trained_args.no_mlp_bn,
+        mlp_dp=trained_args.mlp_dp,
         loss_func=trained_args.loss_func,
+        focal_alpha=trained_args.focal_alpha,
+        focal_gamma=trained_args.focal_gamma,
         weight_kl_satt=trained_args.w_kl_satt,
     )
     model.load_state_dict(

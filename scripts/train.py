@@ -51,6 +51,8 @@ def main():
     parser.add_argument(
         "--loss_func", choices=["ce", "focal"], default="focal"
     )
+    parser.add_argument("--focal_alpha", default=0.5, type=float)
+    parser.add_argument("--focal_gamma", default=2.0, type=float)
 
     parser.add_argument("--device", default="cpu", type=str)
     parser.add_argument("--nepoches", default=50, type=int)
@@ -132,6 +134,8 @@ def main():
             mlp_bn=not args.no_mlp_bn,
             mlp_dp=args.mlp_dp,
             loss_func=args.loss_func,
+            focal_alpha=args.focal_alpha,
+            focal_gamma=args.focal_gamma,
             weight_kl_satt=args.w_kl_satt,
         )
 
