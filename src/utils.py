@@ -21,10 +21,12 @@ def save_json(obj: Dict, fn: str) -> None:
         json.dump(obj, f)
 
 
-def set_seed(seed: int) -> None:
+def set_seed(seed: int, deterministic_algorithm: bool = False) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    if deterministic_algorithm:
+        torch.use_deterministic_algorithms(True)
 
 
 def get_config_from_args(args: Dict, key: str) -> Any:

@@ -48,6 +48,11 @@ def process_one_run(one_run_dir: str, device: str, save_type: str = "png"):
         num_workers=4,
         drop_last=False,
         classes=classes,
+        slice_index=(
+            trained_args.slice_index
+            if "slice_index" in trained_args.__dict__
+            else (None, None)
+        ),
     )["test"]
 
     # 2. model

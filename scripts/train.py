@@ -24,18 +24,15 @@ def main():
     parser.add_argument("--valid_size", default=0.1, type=float)
     parser.add_argument("--test_size", default=0.2, type=float)
     parser.add_argument("--seed", default=2022, type=int)
+    parser.add_argument("--slice_index", default=None, nargs=2, type=int)
 
     parser.add_argument("--backbone", default="resnet34", type=str)
     parser.add_argument("--no_backbone_pretrained", action="store_true")
     parser.add_argument("--backbone_feature_index", default=None, type=int)
     parser.add_argument("--backbone_freeze", action="store_true")
     parser.add_argument("--no_satt", action="store_true")
-    parser.add_argument(
-        "--satt_hiddens", nargs="*", default=[256], type=int
-    )
-    parser.add_argument(
-        "--satt_acts", nargs="*", default=["tanh"], type=str
-    )
+    parser.add_argument("--satt_hiddens", nargs="*", default=[256], type=int)
+    parser.add_argument("--satt_acts", nargs="*", default=["tanh"], type=str)
     parser.add_argument("--no_satt_bn", action="store_true")
     parser.add_argument("--satt_dp", default=None, type=float)
     parser.add_argument("--no_iatt", action="store_true")
@@ -98,6 +95,9 @@ def main():
         test_size=args.test_size,
         seed=args.seed,
         return_classes_codes=True,
+        slice_index=(
+            (None, None) if args.slice_index is None else args.slice_index
+        ),
     )
     if args.cv is None:
         dataloaders_iter = [dataloaders_iter]

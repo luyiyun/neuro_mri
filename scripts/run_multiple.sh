@@ -53,6 +53,7 @@
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.2 --learning_rate 0.01 --lr_schedual
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --no_satt --lr_schedual
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.2 --lr_schedual
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.1
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.3
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.1
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.3
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.1 --slice_index 2 10
