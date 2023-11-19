@@ -56,4 +56,29 @@
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.1
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.3
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.1 --slice_index 2 10
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.1 --slice_index 2 10
+#
+
+# ablation study
+# 1. 无satt
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt
+# 2. 无iatt（这里satt的dropout设为None）
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_iatt
+# 3. 无satt和iatt
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt
+# 4. 无iatt（这里satt的dropout设为0.1，算是一个补充）
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --satt_dp 0.1
+# 5. 无satt kl regularization
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt None
+# 6. 无focal loss
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --loss_func ce
+# 7. satt kl reg的权重变化
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt None
+# 8. focal loss的参数变化
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --..
+
+
+# 实现新的结果
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt_bn
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt_bn
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt 0.01 ....

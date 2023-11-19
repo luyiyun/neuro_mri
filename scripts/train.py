@@ -39,7 +39,11 @@ def main():
     parser.add_argument("--iatt_hidden", default=256, type=int)
     parser.add_argument("--iatt_bias", action="store_true")
     parser.add_argument("--iatt_temperature", default=1.0, type=float)
-    parser.add_argument("--w_kl_satt", default=0.05, type=float)
+    parser.add_argument(
+        "--w_kl_satt",
+        default=0.05,
+        type=lambda x: None if x == "None" else float(x),
+    )
     parser.add_argument("--mlp_hiddens", default=[], nargs="*", type=int)
     parser.add_argument("--mlp_act", default="relu", type=str)
     parser.add_argument("--no_mlp_bn", action="store_true")
