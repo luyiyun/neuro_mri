@@ -10,7 +10,7 @@ import torch
 
 sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
 from src.dataset import get_loaders
-from src.model import CNN2dATT
+from src.model import CNN2dATT, CNN3d
 from src.train import test_model, train_model
 from src.utils import save_json, set_seed
 
@@ -26,6 +26,9 @@ def main():
     parser.add_argument("--seed", default=2022, type=int)
     parser.add_argument("--slice_index", default=None, nargs=2, type=int)
 
+    parser.add_argument(
+        "--model", default="cnn2datt", choices=["cnn2datt", "cnn3d"]
+    )
     parser.add_argument("--backbone", default="resnet34", type=str)
     parser.add_argument("--no_backbone_pretrained", action="store_true")
     parser.add_argument("--backbone_feature_index", default=None, type=int)
@@ -115,29 +118,40 @@ def main():
             logging.info("Fold = %d" % foldi)
 
         # 2. model
-        model = CNN2dATT(
-            backbone=args.backbone,
-            backbone_pretrained=not args.no_backbone_pretrained,
-            backbone_feature_index=args.backbone_feature_index,
-            backbone_freeze=args.backbone_freeze,
-            spatial_attention=not args.no_satt,
-            spatt_hiddens=args.satt_hiddens,
-            spatt_activations=args.satt_acts,
-            spatt_bn=not args.no_satt_bn,
-            spatt_dp=args.satt_dp,
-            instance_attention=not args.no_iatt,
-            inatt_hidden=args.iatt_hidden,
-            inatt_bias=args.iatt_bias,
-            inatt_temperature=args.iatt_temperature,
-            mlp_hiddens=args.mlp_hiddens,
-            mlp_act=args.mlp_act,
-            mlp_bn=not args.no_mlp_bn,
-            mlp_dp=args.mlp_dp,
-            loss_func=args.loss_func,
-            focal_alpha=args.focal_alpha,
-            focal_gamma=args.focal_gamma,
-            weight_kl_satt=args.w_kl_satt,
-        )
+        if args.model == "cnn2datt":
+            model = CNN2dATT(
+                backbone=args.backbone,
+                backbone_pretrained=not args.no_backbone_pretrained,
+                backbone_feature_index=args.backbone_feature_index,
+                backbone_freeze=args.backbone_freeze,
+                spatial_attention=not args.no_satt,
+                spatt_hiddens=args.satt_hiddens,
+                spatt_activations=args.satt_acts,
+                spatt_bn=not args.no_satt_bn,
+                spatt_dp=args.satt_dp,
+                instance_attention=not args.no_iatt,
+                inatt_hidden=args.iatt_hidden,
+                inatt_bias=args.iatt_bias,
+                inatt_temperature=args.iatt_temperature,
+                mlp_hiddens=args.mlp_hiddens,
+                mlp_act=args.mlp_act,
+                mlp_bn=not args.no_mlp_bn,
+                mlp_dp=args.mlp_dp,
+                loss_func=args.loss_func,
+                focal_alpha=args.focal_alpha,
+                focal_gamma=args.focal_gamma,
+                weight_kl_satt=args.w_kl_satt,
+            )
+        elif args.model == "cnn3d":
+            model = CNN3d(
+                mlp_hiddens=args.mlp_hiddens,
+                mlp_act=args.mlp_act,
+                mlp_bn=not args.no_mlp_bn,
+                mlp_dp=args.mlp_dp,
+                loss_func=args.loss_func,
+                focal_alpha=args.focal_alpha,
+                focal_gamma=args.focal_gamma,
+            )
 
         # 3. train
         hist = train_model(

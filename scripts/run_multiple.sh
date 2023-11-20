@@ -64,8 +64,6 @@
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt
 # 2. 无iatt（这里satt的dropout设为None）
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_iatt
-# 3. 无satt和iatt
-# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt
 # 4. 无iatt（这里satt的dropout设为0.1，算是一个补充）
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --satt_dp 0.1
 # 5. 无satt kl regularization
@@ -77,12 +75,22 @@
 # do
 #   python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt $w_kl_satt
 # done
-for w_kl_satt in 0.3 0.4 0.5 0.7 1.0
-do
-  python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt $w_kl_satt
-done
+# for w_kl_satt in 0.3 0.4 0.5 0.7 1.0
+# do
+#   python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt $w_kl_satt
+# done
 # 8. focal loss的参数变化
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --..
+
+# comparisons
+# 1. cnn3d + focal loss
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model cnn3d
+# 2. cnn3d
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model cnn3d --loss_func ce
+# 3. 无satt和iatt (cnn2d) + focal loss
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt
+# 4. 无satt和iatt (cnn2d)
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt --loss_func ce
 
 
 # 实现新的结果
