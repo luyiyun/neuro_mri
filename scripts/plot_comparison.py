@@ -1,168 +1,101 @@
 import logging
-import os
 import os.path as osp
-import re
 import sys
 
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import sci_palettes
 
 sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
+from src.utils import read_json
 
 
 def main():
     logging.basicConfig(level=logging.INFO)
 
-    # 0. argparser
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #     "--root", default="/mnt/data1/tiantan/results/", type=str
-    # )
-    # parser.add_argument("--start", default="2023-11-14", type=str)
-    # parser.add_argument("--end", default=None, type=str)
-    # parser.add_argument("--run_dirs", default=None, type=str, nargs="+")
-    # parser.add_argument("--save_fn", default=None, type=str)
-    # parser.add_argument(
-    #     "--phase", default="all", choices=["valid", "train", "all"]
-    # )
-    # parser.add_argument("--metric", default=None, type=str, nargs="+")
-    # parser.add_argument("--config", default=None, nargs="+", type=parse_config)
-    # args = parser.parse_args()
-
-    # 1. select the runs
-    # if args.run_dirs is not None:
-    #     run_dirs = [
-    #         {"fdir": osp.join(args.root, runi), "dir": runi}
-    #         for runi in args.run_dirs
-    #     ]
-    # else:
-    #     run_dirs = filter_runs_by_datetime(args.root, args.start, args.end)
-    #
-    # # 2. Filter runs by config
-    # if args.config is not None:
-    #     run_dirs = filter_runs_by_configs(run_dirs, args.config)
     root = "/mnt/data1/tiantan/results"
     run_dirs = {
-        "Proposed": "2023-11-19_21-00-03",
-        "3D-CNN (Focal Loss)": ""
+        "DualAttCNN (Focal Loss, Proposed)": "2023-11-19_21-00-03",
+        "DualAttCNN (Cross Entropy)": "2023-11-19_18-06-19",
+        "3D-CNN (Focal Loss)": "2023-11-20_15-36-37",
+        # "3D-CNN (Cross Entropy)": "",
+        "2D-CNN (Focal Loss)": "2023-11-19_16-30-42",
+        # "2D-CNN (Cross Entropy)": "",
+        "SIFT & HOG + SVM": "2023-11-20_23-22-28",
+        "SIFT & HOG + RF": "2023-11-21_00-26-24",
     }
-    run_dir_full = osp.join(root, run_dir)
 
-    # 3. load the training histories TODO: 直接利用run_dirs中的configs
-    hists = []
-    for subdir in os.listdir(run_dir_full):
-        res = re.search(r"fold(\d+)", subdir)
-        if res:
-            hist_dfi = pd.read_csv(
-                osp.join(run_dir_full, subdir, "hist.csv"), index_col=0
-            )
-            hist_dfi["fold"] = int(res.group(1))
-            hists.append(hist_dfi)
-    # hists, config_mappings = [], {}
-    # for runi in run_dirs:
-    #     fdir = runi["fdir"]
-    #     if "fold0" not in os.listdir(fdir):
-    #         if args.config is not None:
-    #             configs = read_json(osp.join(fdir, "args.json"))
-    #             config_mappings[runi["dir"]] = configs
-    #         hist_i = pd.read_csv(osp.join(fdir, "hist.csv"), index_col=0)
-    #         hist_i["run"] = runi["dir"]
-    #         hists.append(hist_i)
-    #     else:
-    #         if args.config is not None:
-    #             configs = read_json(osp.join(fdir, "fold0", "args.json"))
-    #             config_mappings[runi["dir"]] = configs
-    #         for subdir in os.listdir(fdir):
-    #             match_res = re.search(r"fold(\d+?)", subdir)
-    #             if match_res:
-    #                 hist_i = pd.read_csv(
-    #                     osp.join(fdir, subdir, "hist.csv"), index_col=0
-    #                 )
-    #                 hist_i["run"] = runi["dir"]
-    #                 hist_i["fold"] = int(match_res.group(1))
-    #                 hists.append(hist_i)
-    hists = pd.concat(hists, axis=0)
-    hists.reset_index(names="epoch", inplace=True)  # the epoch is the index
+    # 3. load the test scores
+    test_scores = []
+    for k, run_dir in run_dirs.items():
+        for i in range(5):
+            fn = osp.join(root, run_dir, "fold%d" % i, "test_scores.json")
+            test_scores_i = read_json(fn)
+            test_scores_i["fold"] = i
+            test_scores_i["method"] = k
+            test_scores.append(test_scores_i)
+    test_scores = pd.DataFrame.from_records(test_scores)
 
-    # 4. plot the losses
     metric_mapping = {
-        "main": "Total Loss",
         "bacc": "Balanced Accuracy",
         "acc": "Accuracy",
         "auc": "Area Under ROC curver",
         "sensitivity": "Sensitivity",
         "specificity": "Specificity",
     }
-    phases = ["train", "valid"]
-    metrics = metric_mapping.keys()
-    # phases = ["train", "valid"] if args.phase == "all" else [args.phase]
-    # metrics = metric_mapping.keys() if args.metric is None else args.metric
-    ncol = len(phases)
-    nrow = len(metrics)
+    test_scores.rename(columns=metric_mapping, inplace=True)
 
-    fig, axs = plt.subplots(
-        nrows=nrow,
-        ncols=ncol,
-        figsize=(3.5 * ncol + 3, 3 * nrow),  # add space for legend
-        squeeze=False,
-        layout="constrained",
-    )
-    # all_handles, all_labels = [], []
-    for j, phase in enumerate(phases):
-        sub_data = hists.query("phase == '%s'" % phase)
-        for i, metric in enumerate(metrics):
-            ax = axs[i, j]
-            sns.lineplot(
-                data=sub_data,
-                x="epoch",
-                y=metric,
-                # hue="run",
-                units="fold",
-                estimator=None,
-                ax=ax,
-                # legend=False,
-            )
-            ax.set_ylabel("")
-            ax.set_xlabel("Epoch" if i == (nrow - 1) else "")
-            ax.set_title(
-                "%s %s" % (phase.capitalize(), metric_mapping[metric])
-            )
+    # 4. plot the metrics
+    plt.rcParams["font.family"] = "Times New Roman"
+    nmethods = len(run_dirs)
+    sci_palettes.register_cmap()
+    palette = sns.color_palette("npg_nrc")[:nmethods]
 
-            # for hi, li in zip(*ax.get_legend_handles_labels()):
-            #     if li not in all_labels:
-            #         all_handles.append(hi)
-            #         all_labels.append(li)
-
-            # ax.get_legend().remove()
-
-    # if args.config is not None:
-    #     new_all_labels = []
-    #     for li in all_labels:
-    #         configi = config_mappings[li]
-    #         new_li = ",".join(
-    #             [
-    #                 "%s=%.3f" % (k, get_config_from_args(configi, k))
-    #                 if isinstance(get_config_from_args(configi, k), float)
-    #                 else "%s=%s" % (k, str(get_config_from_args(configi, k)))
-    #                 for k in args.config
-    #             ]
-    #         )
-    #         new_all_labels.append(new_li)
-    #     all_labels = new_all_labels
-    # fig.legend(
-    #     all_handles,
-    #     all_labels,
-    #     loc="outside right center",
+    fig = plt.figure(constrained_layout=True)
+    gs = fig.add_gridspec(ncols=6, nrows=2)
+    axs = [
+        fig.add_subplot(gs[0, :2]),
+        fig.add_subplot(gs[0, 2:4]),
+        fig.add_subplot(gs[0, 4:]),
+        fig.add_subplot(gs[1, 1:3]),
+        fig.add_subplot(gs[1, 3:5]),
+    ]
+    # ncol, nrow = 3, 2
+    # fig, axs = plt.subplots(
+    #     nrows=nrow,
+    #     ncols=ncol,
+    #     figsize=(3 * ncol, 3 * nrow),  # add space for legend
+    #     squeeze=False,
+    #     layout="constrained",
     # )
+    # axs = axs.flatten()
+    for i, metrici in enumerate(metric_mapping.values()):
+        ax = axs[i]
+        sns.boxplot(
+            data=test_scores,
+            x="method",
+            y=metrici,
+            hue="method",
+            ax=ax,
+            dodge=False,
+            palette=palette,
+        )
+        ax.set_ylabel("")
+        ax.set_xlabel("")
+        ax.set_title(metrici)
+        ax.set_xticklabels([])
+        ax.spines[["right", "top"]].set_visible(False)
+
+    handles, labels = [], []
+    for i, label in enumerate(test_scores["method"].unique()):
+        handles.append(mpatches.Patch(color=palette[i], label=label))
+        labels.append(label)
+    fig.legend(handles, labels, loc="outside lower center", ncols=3)
 
     # 5. saving
-    # if args.save_fn is None:
-    #     save_fn = osp.join(args.root, "plot_hist_%s.png" % args.phase)
-    # else:
-    #     save_fn = args.save_fn
-    # logging.info("the losses figure is saved in %s" % save_fn)
-    fig.savefig(osp.join(root, "plot_hist.png"))
+    fig.savefig(osp.join(root, "plot_comparison.png"))
 
 
 if __name__ == "__main__":
