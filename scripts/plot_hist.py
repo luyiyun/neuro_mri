@@ -1,91 +1,40 @@
-# import argparse
 import logging
-import os
 import os.path as osp
-import re
-import sys
 
 import matplotlib.pyplot as plt
 import pandas as pd
+# import sci_palettes
+import colorcet as cc
 import seaborn as sns
-
-sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
-# from src.utils import (filter_runs_by_configs, filter_runs_by_datetime,
-#                        get_config_from_args, parse_config, read_json)
+# from scipy.interpolate import splrep, BSpline
+from scipy.signal import savgol_filter
 
 
 def main():
     logging.basicConfig(level=logging.INFO)
 
-    # 0. argparser
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #     "--root", default="/mnt/data1/tiantan/results/", type=str
-    # )
-    # parser.add_argument("--start", default="2023-11-14", type=str)
-    # parser.add_argument("--end", default=None, type=str)
-    # parser.add_argument("--run_dirs", default=None, type=str, nargs="+")
-    # parser.add_argument("--save_fn", default=None, type=str)
-    # parser.add_argument(
-    #     "--phase", default="all", choices=["valid", "train", "all"]
-    # )
-    # parser.add_argument("--metric", default=None, type=str, nargs="+")
-    # parser.add_argument("--config", default=None, nargs="+", type=parse_config)
-    # args = parser.parse_args()
-
-    # 1. select the runs
-    # if args.run_dirs is not None:
-    #     run_dirs = [
-    #         {"fdir": osp.join(args.root, runi), "dir": runi}
-    #         for runi in args.run_dirs
-    #     ]
-    # else:
-    #     run_dirs = filter_runs_by_datetime(args.root, args.start, args.end)
-    #
-    # # 2. Filter runs by config
-    # if args.config is not None:
-    #     run_dirs = filter_runs_by_configs(run_dirs, args.config)
     root = "/mnt/data1/tiantan/results"
-    run_dir = "2023-11-19_21-00-03"
-    run_dir_full = osp.join(root, run_dir)
+    run_dirs = {
+        "DualAttCNN (Focal Loss, Proposed)": "2023-11-19_21-00-03",
+        "DualAttCNN (Cross Entropy)": "2023-11-19_18-06-19",
+        "3D-CNN (Focal Loss)": "2023-11-20_15-36-37",
+        "3D-CNN (Cross Entropy)": "2023-11-21_01-14-01",
+        "2D-CNN (Focal Loss)": "2023-11-19_16-30-42",
+        "2D-CNN (Cross Entropy)": "2023-11-21_01-41-11",
+    }
+    nmethods = len(run_dirs)
 
-    # 3. load the training histories TODO: 直接利用run_dirs中的configs
+    # 2. load the hist records
     hists = []
-    for subdir in os.listdir(run_dir_full):
-        res = re.search(r"fold(\d+)", subdir)
-        if res:
-            hist_dfi = pd.read_csv(
-                osp.join(run_dir_full, subdir, "hist.csv"), index_col=0
-            )
-            hist_dfi["fold"] = int(res.group(1))
-            hists.append(hist_dfi)
-    # hists, config_mappings = [], {}
-    # for runi in run_dirs:
-    #     fdir = runi["fdir"]
-    #     if "fold0" not in os.listdir(fdir):
-    #         if args.config is not None:
-    #             configs = read_json(osp.join(fdir, "args.json"))
-    #             config_mappings[runi["dir"]] = configs
-    #         hist_i = pd.read_csv(osp.join(fdir, "hist.csv"), index_col=0)
-    #         hist_i["run"] = runi["dir"]
-    #         hists.append(hist_i)
-    #     else:
-    #         if args.config is not None:
-    #             configs = read_json(osp.join(fdir, "fold0", "args.json"))
-    #             config_mappings[runi["dir"]] = configs
-    #         for subdir in os.listdir(fdir):
-    #             match_res = re.search(r"fold(\d+?)", subdir)
-    #             if match_res:
-    #                 hist_i = pd.read_csv(
-    #                     osp.join(fdir, subdir, "hist.csv"), index_col=0
-    #                 )
-    #                 hist_i["run"] = runi["dir"]
-    #                 hist_i["fold"] = int(match_res.group(1))
-    #                 hists.append(hist_i)
-    hists = pd.concat(hists, axis=0)
-    hists.reset_index(names="epoch", inplace=True)  # the epoch is the index
+    for k, run_dir in run_dirs.items():
+        for i in range(5):
+            fn = osp.join(root, run_dir, "fold%d" % i, "hist.csv")
+            hist_i = pd.read_csv(fn, index_col=0).reset_index(names="epoch")
+            hist_i["fold"] = i
+            hist_i["method"] = k
+            hists.append(hist_i)
+    hists = pd.concat(hists)
 
-    # 4. plot the losses
     metric_mapping = {
         "main": "Total Loss",
         "bacc": "Balanced Accuracy",
@@ -94,74 +43,65 @@ def main():
         "sensitivity": "Sensitivity",
         "specificity": "Specificity",
     }
-    phases = ["train", "valid"]
-    metrics = metric_mapping.keys()
-    # phases = ["train", "valid"] if args.phase == "all" else [args.phase]
-    # metrics = metric_mapping.keys() if args.metric is None else args.metric
-    ncol = len(phases)
-    nrow = len(metrics)
+    hists.rename(columns=metric_mapping, inplace=True)
 
-    fig, axs = plt.subplots(
-        nrows=nrow,
-        ncols=ncol,
-        figsize=(3.5 * ncol + 3, 3 * nrow),  # add space for legend
-        squeeze=False,
-        layout="constrained",
-    )
-    # all_handles, all_labels = [], []
-    for j, phase in enumerate(phases):
-        sub_data = hists.query("phase == '%s'" % phase)
-        for i, metric in enumerate(metrics):
-            ax = axs[i, j]
+    # 3. smooth the curve
+    def smooth_df(df):
+        # x = df["epoch"].values
+        for k in metric_mapping.values():
+            y = df[k].values
+            df[k] = savgol_filter(y, 10, 2)
+            # tck = splrep(x, y, s=0)
+            # df[k] = BSpline(*tck)(x)
+        return df
+
+    hists = hists.groupby(["phase", "fold", "method"]).apply(smooth_df)
+
+    # 4. plot the losses
+    plt.rcParams["font.family"] = "Times New Roman"
+    # sci_palettes.register_cmap()
+    # palette = sns.color_palette("npg_nrc")[1:(nmethods + 1)]
+    palette = cc.glasbey_category10[:nmethods]
+
+    fig = plt.figure(constrained_layout=True, figsize=(10, 8))
+    subfigs = fig.subfigures(1, 2, wspace=0.07)
+
+    full_axs = []
+    for i, phasei in enumerate(["train", "valid"]):
+        subfigs[i].suptitle(phasei.capitalize(), fontsize="x-large")
+        axs = subfigs[i].subplots(ncols=2, nrows=3)
+        axs = axs.flatten()
+        full_axs += axs.tolist()
+
+        sub_data = hists.query("phase == '%s'" % phasei)
+        for j, metrici in enumerate(metric_mapping.values()):
+            ax = axs[j]
             sns.lineplot(
                 data=sub_data,
                 x="epoch",
-                y=metric,
-                # hue="run",
+                y=metrici,
+                hue="method",
                 units="fold",
                 estimator=None,
                 ax=ax,
-                # legend=False,
+                palette=palette,
             )
             ax.set_ylabel("")
-            ax.set_xlabel("Epoch" if i == (nrow - 1) else "")
-            ax.set_title(
-                "%s %s" % (phase.capitalize(), metric_mapping[metric])
-            )
+            ax.set_xlabel("" if j < 3 else "Epoch")
+            ax.set_title(metrici)
 
-            # for hi, li in zip(*ax.get_legend_handles_labels()):
-            #     if li not in all_labels:
-            #         all_handles.append(hi)
-            #         all_labels.append(li)
+    handles, labels = full_axs[0].get_legend_handles_labels()
+    for ax in full_axs:
+        ax.get_legend().remove()
+    fig.legend(
+        handles,
+        labels,
+        loc="outside lower center",
+        ncols=4,
+        frameon=False,
+        fancybox=False,
+    )
 
-            # ax.get_legend().remove()
-
-    # if args.config is not None:
-    #     new_all_labels = []
-    #     for li in all_labels:
-    #         configi = config_mappings[li]
-    #         new_li = ",".join(
-    #             [
-    #                 "%s=%.3f" % (k, get_config_from_args(configi, k))
-    #                 if isinstance(get_config_from_args(configi, k), float)
-    #                 else "%s=%s" % (k, str(get_config_from_args(configi, k)))
-    #                 for k in args.config
-    #             ]
-    #         )
-    #         new_all_labels.append(new_li)
-    #     all_labels = new_all_labels
-    # fig.legend(
-    #     all_handles,
-    #     all_labels,
-    #     loc="outside right center",
-    # )
-
-    # 5. saving
-    # if args.save_fn is None:
-    #     save_fn = osp.join(args.root, "plot_hist_%s.png" % args.phase)
-    # else:
-    #     save_fn = args.save_fn
-    # logging.info("the losses figure is saved in %s" % save_fn)
     fig.savefig(osp.join(root, "plot_hist.png"))
 
 
