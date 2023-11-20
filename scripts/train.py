@@ -5,12 +5,16 @@ import os.path as osp
 import sys
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
+import sklearn.metrics as skm
 import torch
+from sklearn.preprocessing import LabelEncoder
 
 sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
-from src.dataset import get_loaders
+from src.dataset import extract_imgs_labels_from_loader, get_loaders
 from src.model import CNN2dATT, CNN3d
+from src.model.tradition import get_tradition_model, load_preprocess_niis
 from src.train import test_model, train_model
 from src.utils import save_json, set_seed
 
@@ -25,9 +29,18 @@ def main():
     parser.add_argument("--test_size", default=0.2, type=float)
     parser.add_argument("--seed", default=2022, type=int)
     parser.add_argument("--slice_index", default=None, nargs=2, type=int)
+    parser.add_argument(
+        "--target_shape",
+        default=[128, 128, 12],
+        nargs=3,
+        type=int,
+        help="necessary for nilearn",
+    )
 
     parser.add_argument(
-        "--model", default="cnn2datt", choices=["cnn2datt", "cnn3d"]
+        "--model",
+        default="cnn2datt",
+        choices=["cnn2datt", "cnn3d", "sklearn_svc", "sklearn_rf"],
     )
     parser.add_argument("--backbone", default="resnet34", type=str)
     parser.add_argument("--no_backbone_pretrained", action="store_true")
@@ -89,6 +102,8 @@ def main():
     else:
         save_root = args.save_root
     logging.info("the results saved in %s" % save_root)
+    rescaled_dir = "/mnt/data1/tiantan/rescaled_nilearn"
+    os.makedirs(rescaled_dir, exist_ok=True)
 
     set_seed(args.seed)
 
@@ -152,28 +167,70 @@ def main():
                 focal_alpha=args.focal_alpha,
                 focal_gamma=args.focal_gamma,
             )
+        elif args.model.startswith("sklearn"):
+            lencoder = LabelEncoder()
+            model = get_tradition_model(args.model[8:])
 
         # 3. train
-        hist = train_model(
-            model,
-            loaders["train"],
-            loaders["valid"],
-            device=args.device,
-            nepoches=args.nepoches,
-            learning_rate=args.learning_rate,
-            model_checkpoint=not args.no_modelcheckpoint,
-            early_stop=not args.no_early_stop,
-            early_stop_patience=args.early_stop_patience,
-            lr_schedual=args.lr_schedual,
-            lr_sch_factor=args.lr_sch_factor,
-            lr_sch_patience=args.lr_sch_patience,
-            monitor_metric=args.monitor_metric,
-            message_level=args.message_level,
-        )
-        if "test" in loaders:
-            test_scores, test_pred = test_model(
-                model, loaders["test"], device=args.device, return_predict=True
+        if args.model.startswith("sklearn"):
+            trX, trY = extract_imgs_labels_from_loader(loaders["train"])
+            vaX, vaY = extract_imgs_labels_from_loader(loaders["valid"])
+            trX, trY = trX + vaX, trY + vaY
+
+            # convert to ndarray
+            trX = load_preprocess_niis(
+                trX,
+                resize_shape=args.target_shape,
+                slice_trunc=args.slice_index,
             )
+            trY = lencoder.fit_transform(trY)
+            model.fit(trX, trY)
+        else:
+            hist = train_model(
+                model,
+                loaders["train"],
+                loaders["valid"],
+                device=args.device,
+                nepoches=args.nepoches,
+                learning_rate=args.learning_rate,
+                model_checkpoint=not args.no_modelcheckpoint,
+                early_stop=not args.no_early_stop,
+                early_stop_patience=args.early_stop_patience,
+                lr_schedual=args.lr_schedual,
+                lr_sch_factor=args.lr_sch_factor,
+                lr_sch_patience=args.lr_sch_patience,
+                monitor_metric=args.monitor_metric,
+                message_level=args.message_level,
+            )
+        if "test" in loaders:
+            if args.model.startswith("sklearn"):
+                teX, teY = extract_imgs_labels_from_loader(loaders["test"])
+                teX = load_preprocess_niis(
+                    teX,
+                    resize_shape=args.target_shape,
+                    slice_trunc=args.slice_index,
+                )
+                teY = lencoder.transform(teY)
+                test_pred = model.predict_proba(teX)
+                test_pred_label = test_pred.argmax(axis=1)
+                test_scores = {
+                    "bacc": skm.balanced_accuracy_score(teY, test_pred_label),
+                    "acc": skm.accuracy_score(teY, test_pred_label),
+                    "auc": skm.roc_auc_score(teY, test_pred[:, 1]),
+                    "sensitivity": skm.recall_score(teY, test_pred_label),
+                    "specificity": (
+                        np.sum((teY == 0) * (test_pred_label == 0))
+                        / np.sum(teY == 0)
+                    ),
+                }
+                classes = lencoder.classes_
+            else:
+                test_scores, test_pred = test_model(
+                    model,
+                    loaders["test"],
+                    device=args.device,
+                    return_predict=True,
+                )
             logging.info(
                 "Test: "
                 + ", ".join(
@@ -190,15 +247,16 @@ def main():
 
         save_json(args.__dict__, osp.join(save_root_i, "args.json"))
 
-        torch.save(model.state_dict(), osp.join(save_root_i, "model.pth"))
+        if not args.model.startswith("sklearn"):
+            torch.save(model.state_dict(), osp.join(save_root_i, "model.pth"))
 
-        hist_df = pd.DataFrame(hist["train"])
-        hist_df["phase"] = "train"
-        if "valid" in hist:
-            hist_df_valid = pd.DataFrame(hist["valid"])
-            hist_df_valid["phase"] = "valid"
-            hist_df = pd.concat([hist_df, hist_df_valid])
-        hist_df.to_csv(osp.join(save_root_i, "hist.csv"))
+            hist_df = pd.DataFrame(hist["train"])
+            hist_df["phase"] = "train"
+            if "valid" in hist:
+                hist_df_valid = pd.DataFrame(hist["valid"])
+                hist_df_valid["phase"] = "valid"
+                hist_df = pd.concat([hist_df, hist_df_valid])
+            hist_df.to_csv(osp.join(save_root_i, "hist.csv"))
 
         if "test" in loaders:
             save_json(test_scores, osp.join(save_root_i, "test_scores.json"))

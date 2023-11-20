@@ -8,6 +8,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
+# import nibabel as nib
+# import nilearn.image as nim
+# from tqdm import tqdm
 
 
 def read_json(fn: str) -> Dict:
@@ -115,3 +118,37 @@ def filter_runs_by_configs(run_dirs: List[Dict], configs: List) -> List[Dict]:
         new_run_dirs.append(runi)
 
     return new_run_dirs
+
+
+# def rescale_to_first(imglist: List[str], save_dir: str) -> List[str]:
+#     refer = (
+#         "/mnt/data1/tiantan/pp_SynthSeg/rm_skull/CSVD/"
+#         "20220216003519_9002319425_c_a_a__resampled.nii"
+#     )
+#     res = []
+#     for imgi in tqdm(imglist, desc="Rescale"):
+#         save_fn = osp.join(save_dir, osp.basename(imgi))
+#         res.append(save_fn)
+#         if osp.exists(save_fn):
+#             continue
+#         imgi_rescale = nim.resample_to_img(imgi, refer)
+#         nib.save(imgi_rescale, save_fn)
+#
+#     return res
+#
+#
+# def rescale_to_shape(
+#     imglist: List[str], save_dir: str, shape: Tuple[int, int, int]
+# ) -> List[str]:
+#     res = []
+#     for imgi in tqdm(imglist, desc="Rescale"):
+#         save_fn = osp.join(save_dir, osp.basename(imgi))
+#         res.append(save_fn)
+#         if osp.exists(save_fn):
+#             continue
+#         imgi_rescale = nim.resample_img(
+#             imgi, target_affine=np.eye(4), target_shape=shape
+#         )
+#         nib.save(imgi_rescale, save_fn)
+#
+#     return res

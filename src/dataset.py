@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 import torch
@@ -188,3 +188,11 @@ def get_loaders(
             yield dataloaders
         else:
             yield dataloaders, classes
+
+
+def extract_imgs_labels_from_loader(loader: DataLoader) -> Tuple[Sequence[str], Sequence[Any]]:
+    imgs, labels = [], []
+    for elem in loader.dataset.data:
+        imgs.append(elem["img"])
+        labels.append(elem["label"])
+    return imgs, labels
