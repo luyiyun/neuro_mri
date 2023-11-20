@@ -1,4 +1,3 @@
-# import argparse
 import logging
 import os
 import os.path as osp
@@ -10,8 +9,6 @@ import pandas as pd
 import seaborn as sns
 
 sys.path.append("/".join(osp.abspath(__file__).split("/")[:-2]))
-# from src.utils import (filter_runs_by_configs, filter_runs_by_datetime,
-#                        get_config_from_args, parse_config, read_json)
 
 
 def main():
@@ -46,7 +43,10 @@ def main():
     # if args.config is not None:
     #     run_dirs = filter_runs_by_configs(run_dirs, args.config)
     root = "/mnt/data1/tiantan/results"
-    run_dir = "2023-11-19_21-00-03"
+    run_dirs = {
+        "Proposed": "2023-11-19_21-00-03",
+        "3D-CNN (Focal Loss)": ""
+    }
     run_dir_full = osp.join(root, run_dir)
 
     # 3. load the training histories TODO: 直接利用run_dirs中的configs

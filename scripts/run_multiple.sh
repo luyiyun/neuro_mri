@@ -79,7 +79,7 @@
 # do
 #   python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt $w_kl_satt
 # done
-# 8. focal loss的参数变化
+# 8. focal loss的参数变化 TODO
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --..
 
 # comparisons
@@ -92,7 +92,9 @@
 # 4. 无satt和iatt (cnn2d) TODO
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt --loss_func ce
 # 5. svc
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model sklearn_svc
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model sklearn_svc
+# 6. rf
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model sklearn_rf
 
 
 # 实现新的结果

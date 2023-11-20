@@ -31,7 +31,7 @@ def main():
     parser.add_argument("--slice_index", default=None, nargs=2, type=int)
     parser.add_argument(
         "--target_shape",
-        default=[128, 128, 12],
+        default=(256, 256, 24),
         nargs=3,
         type=int,
         help="necessary for nilearn",
