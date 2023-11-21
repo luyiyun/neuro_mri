@@ -57,7 +57,7 @@ def main():
     parser.add_argument("--iatt_temperature", default=1.0, type=float)
     parser.add_argument(
         "--w_kl_satt",
-        default=0.05,
+        default=0.2,
         type=lambda x: None if x == "None" else float(x),
     )
     parser.add_argument("--mlp_hiddens", default=[], nargs="*", type=int)
