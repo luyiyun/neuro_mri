@@ -57,7 +57,7 @@
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.1
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.3
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --satt_dp 0.1 --slice_index 2 10
-#
+
 
 # ablation study
 # 1. 无satt
@@ -68,33 +68,33 @@
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --satt_dp 0.1
 # 5. 无satt kl regularization
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt None
-# 6. 无focal loss
-# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --loss_func ce
-# 7. satt kl reg的权重变化
-# for w_kl_satt in 0.001 0.01 0.05 0.1 0.2
+# 6. satt kl reg的权重变化
+# for w_kl_satt in 0.001 0.01 0.05 0.1 0.2 0.3 0.4 0.5 0.7 1.0
 # do
 #   python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt $w_kl_satt
 # done
-# for w_kl_satt in 0.3 0.4 0.5 0.7 1.0
-# do
-#   python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt $w_kl_satt
-# done
-# 8. focal loss的参数变化 TODO
+for w_kl_satt in 0.001 0.01 0.05 0.1 0.2 0.3 0.4 0.5 0.7 1.0
+do
+  python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --w_kl_satt $w_kl_satt --loss_func ce
+done
+# 7. focal loss的参数变化 TODO
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --..
 
 # comparisons
 # 1. cnn3d + focal loss
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model cnn3d
 # 2. cnn3d
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model cnn3d --loss_func ce
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model cnn3d --loss_func ce
 # 3. 无satt和iatt (cnn2d) + focal loss
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt
 # 4. 无satt和iatt (cnn2d)
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt --loss_func ce
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt --loss_func ce
 # 5. svc
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model sklearn_svc
 # 6. rf
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model sklearn_rf
+# 7. proposed, 无focal loss
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --loss_func ce
 
 
 # 实现新的结果
