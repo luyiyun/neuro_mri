@@ -1,10 +1,10 @@
 import logging
 import os.path as osp
 
-import matplotlib.pyplot as plt
-import pandas as pd
 # import sci_palettes
 import colorcet as cc
+import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
 # from scipy.interpolate import splrep, BSpline
 from scipy.signal import savgol_filter
@@ -39,7 +39,7 @@ def main():
         "main": "Total Loss",
         "bacc": "Balanced Accuracy",
         "acc": "Accuracy",
-        "auc": "Area Under ROC curver",
+        "auc": "Area Under ROC Curver",
         "sensitivity": "Sensitivity",
         "specificity": "Specificity",
     }
@@ -56,6 +56,12 @@ def main():
         return df
 
     hists = hists.groupby(["phase", "fold", "method"]).apply(smooth_df)
+    hists = (
+        hists.reset_index(drop=True)
+        .groupby(["phase", "method", "epoch"])
+        .mean()
+    )
+    hists = hists.reset_index()
 
     # 4. plot the losses
     plt.rcParams["font.family"] = "Times New Roman"
@@ -68,6 +74,15 @@ def main():
 
     full_axs = []
     for i, phasei in enumerate(["train", "valid"]):
+        subfigs[i].text(
+            0.03,
+            0.98,
+            "AB"[i],
+            fontweight="bold",
+            fontsize=12,
+            va="center",
+            ha="center",
+        )
         subfigs[i].suptitle(phasei.capitalize(), fontsize="x-large")
         axs = subfigs[i].subplots(ncols=2, nrows=3)
         axs = axs.flatten()
@@ -81,7 +96,7 @@ def main():
                 x="epoch",
                 y=metrici,
                 hue="method",
-                units="fold",
+                # units="fold",
                 estimator=None,
                 ax=ax,
                 palette=palette,
@@ -89,6 +104,7 @@ def main():
             ax.set_ylabel("")
             ax.set_xlabel("" if j < 3 else "Epoch")
             ax.set_title(metrici)
+            ax.spines[["right", "top"]].set_visible(False)
 
     handles, labels = full_axs[0].get_legend_handles_labels()
     for ax in full_axs:
@@ -97,7 +113,7 @@ def main():
         handles,
         labels,
         loc="outside lower center",
-        ncols=4,
+        ncols=3,
         frameon=False,
         fancybox=False,
     )

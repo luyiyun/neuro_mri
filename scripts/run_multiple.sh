@@ -88,7 +88,10 @@
 #   done
 # done
 # 出现NaN，换个seed试试
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 1 --slice_index 2 10 --focal_alpha 0.5 --focal_gamma 0.5
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 1 --slice_index 2 10 --focal_alpha 0.5 --focal_gamma 0.5
+# 8. backbone: 从头训练 & freezing
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --satt_dp 0.1 --no_backbone_pretrained
+python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --satt_dp 0.1 --backbone_freeze
 
 # comparisons
 # 1. cnn3d + focal loss

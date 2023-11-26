@@ -42,7 +42,7 @@ def main():
     metric_mapping = {
         "bacc": "Balanced Accuracy",
         "acc": "Accuracy",
-        "auc": "Area Under ROC curver",
+        "auc": "Area Under ROC Curver",
         "sensitivity": "Sensitivity",
         "specificity": "Specificity",
     }

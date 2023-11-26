@@ -20,7 +20,7 @@ from src.utils import read_json
 metric_mapping = {
     "bacc": "Balanced Accuracy",
     "acc": "Accuracy",
-    "auc": "Area Under ROC curver",
+    "auc": "Area Under ROC Curver",
     "sensitivity": "Sensitivity",
     "specificity": "Specificity",
 }
@@ -66,8 +66,45 @@ def main():
     fig = plt.figure(constrained_layout=True, figsize=(10, 6))
     subfigs = fig.subfigures(1, 2, wspace=0.07, width_ratios=[1, 1.5])
     fig_wkl = subfigs[0]
-    subsubfigs = subfigs[1].subfigures(2, 1, hspace=0.07, height_ratios=[1, 2])
-    fig_att, fig_focal = subsubfigs[0], subsubfigs[1]
+    subsubfigs = subfigs[1].subfigures(3, 1, hspace=0.07)
+    fig_att, fig_focal, fig_bbone = subsubfigs[0], subsubfigs[1], subsubfigs[2]
+
+    fig_wkl.text(
+        0.03,
+        0.98,
+        "A",
+        fontweight="bold",
+        fontsize=12,
+        va="center",
+        ha="center",
+    )
+    fig_att.text(
+        0.01,
+        0.94,
+        "B",
+        fontweight="bold",
+        fontsize=12,
+        va="center",
+        ha="center",
+    )
+    fig_focal.text(
+        0.01,
+        0.99,
+        "C",
+        fontweight="bold",
+        fontsize=12,
+        va="center",
+        ha="center",
+    )
+    fig_bbone.text(
+        0.01,
+        0.99,
+        "D",
+        fontweight="bold",
+        fontsize=12,
+        va="center",
+        ha="center",
+    )
 
     # -- 1. w_kl_satt
     # -- (1) filter runs
@@ -148,14 +185,6 @@ def main():
         {"method": "w/o All Attentions", "dir": "2023-11-19_16-30-42"},
     ]
     test_scores = get_test_scores(run_items_att, root)
-    # gs = fig_att.add_gridspec(ncols=6, nrows=2)
-    # axs = [
-    #     fig_att.add_subplot(gs[0, :2]),
-    #     fig_att.add_subplot(gs[0, 2:4]),
-    #     fig_att.add_subplot(gs[0, 4:]),
-    #     fig_att.add_subplot(gs[1, 1:3]),
-    #     fig_att.add_subplot(gs[1, 3:5]),
-    # ]
     axs = fig_att.subplots(nrows=1, ncols=5, sharey=False)
     axs = axs.flatten()
     for i, metrici in enumerate(metric_mapping.values()):
@@ -176,12 +205,9 @@ def main():
         ax.xaxis.set_ticks([])
         ax.spines[["right", "top"]].set_visible(False)
 
-    # axs[-1].spines[["top", "right", "bottom", "left"]].set_visible(False)
-    # axs[-1].get_xaxis().set_ticks([])
-    # axs[-1].get_yaxis().set_ticks([])
     handles, labels = [], []
     for i, label in enumerate(test_scores["method"].unique()):
-        handles.append(mpatches.Patch(color=palette[i], label=label))
+        handles.append(mpatches.Rectangle((0, 0), 1, 1, color=palette[i]))
         labels.append(label)
     fig_att.legend(
         handles,
@@ -198,9 +224,8 @@ def main():
         datei = fn2dt(fni)
         if datei is None:
             continue
-        if (
-            datei >= fn2dt("2023-11-21_15-05-11")
-            and datei <= fn2dt("2023-11-21_20-40-49")
+        if datei >= fn2dt("2023-11-21_15-05-11") and datei <= fn2dt(
+            "2023-11-21_20-40-49"
         ):
             paths.append(fni)
     run_items_focal = []
@@ -215,14 +240,16 @@ def main():
         )
     test_scores = get_test_scores(run_items_focal, root)
 
-    gs = fig_focal.add_gridspec(ncols=6, nrows=2)
-    axs = [
-        fig_focal.add_subplot(gs[0, :2]),
-        fig_focal.add_subplot(gs[0, 2:4]),
-        fig_focal.add_subplot(gs[0, 4:]),
-        fig_focal.add_subplot(gs[1, 1:3]),
-        fig_focal.add_subplot(gs[1, 3:5]),
-    ]
+    axs = fig_focal.subplots(nrows=1, ncols=5, sharey=False)
+    axs = axs.flatten()
+    # gs = fig_focal.add_gridspec(ncols=6, nrows=2)
+    # axs = [
+    #     fig_focal.add_subplot(gs[0, :2]),
+    #     fig_focal.add_subplot(gs[0, 2:4]),
+    #     fig_focal.add_subplot(gs[0, 4:]),
+    #     fig_focal.add_subplot(gs[1, 1:3]),
+    #     fig_focal.add_subplot(gs[1, 3:5]),
+    # ]
 
     for i, metrici in enumerate(metric_mapping.values()):
         ax = axs[i]
@@ -252,6 +279,49 @@ def main():
     )
     for ax in axs:
         ax.get_legend().remove()
+
+    # -- 4. proposed & backbone from scratch & backbone freeze
+    run_items_att = [
+        {"method": "Proposed Method", "dir": "2023-11-19_21-00-03"},
+        {
+            "method": "Backbone Training from Scratch",
+            "dir": "2023-11-26_20-55-05",
+        },
+        {"method": "Backbone Freeze", "dir": "2023-11-26_21-19-01"},
+    ]
+    test_scores = get_test_scores(run_items_att, root)
+    axs = fig_bbone.subplots(nrows=1, ncols=5, sharey=False)
+    axs = axs.flatten()
+    for i, metrici in enumerate(metric_mapping.values()):
+        ax = axs[i]
+        sns.boxplot(
+            data=test_scores,
+            x="method",
+            y=metrici,
+            hue="method",
+            ax=ax,
+            dodge=False,
+            palette=palette,
+        )
+        ax.set_ylabel("")
+        ax.set_xlabel("")
+        ax.set_title(metrici, fontsize="medium")
+        ax.set_xticklabels([])
+        ax.xaxis.set_ticks([])
+        ax.spines[["right", "top"]].set_visible(False)
+
+    handles, labels = [], []
+    for i, label in enumerate(test_scores["method"].unique()):
+        handles.append(mpatches.Patch(color=palette[i], label=label))
+        labels.append(label)
+    fig_bbone.legend(
+        handles,
+        labels,
+        loc="outside lower center",
+        ncols=3,
+        frameon=False,
+        fancybox=False,
+    )
 
     # 5. saving
     fig.savefig(osp.join(root, "plot_ablation_weight.png"))
