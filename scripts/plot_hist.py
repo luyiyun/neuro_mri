@@ -118,7 +118,8 @@ def main():
         fancybox=False,
     )
 
-    fig.savefig(osp.join(root, "plot_hist.png"))
+    fig.savefig(osp.join(root, "plot_hist.png"), dpi=300)
+    fig.savefig(osp.join(root, "plot_hist.pdf"))
 
 
 if __name__ == "__main__":

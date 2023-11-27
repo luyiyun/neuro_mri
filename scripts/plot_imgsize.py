@@ -107,4 +107,5 @@ ax.bar_label(ax.containers[1], fmt="%d")
 #     ax.spines[['right', 'top']].set_visible(False)
 # fig.tight_layout()
 
-fig.savefig("/mnt/data1/tiantan/results/plot_imgsize.png")
+fig.savefig("/mnt/data1/tiantan/results/plot_imgsize.png", dpi=300)
+fig.savefig("/mnt/data1/tiantan/results/plot_imgsize.pdf")

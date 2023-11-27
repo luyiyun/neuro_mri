@@ -324,7 +324,8 @@ def main():
     )
 
     # 5. saving
-    fig.savefig(osp.join(root, "plot_ablation_weight.png"))
+    fig.savefig(osp.join(root, "plot_ablation_weight.png"), dpi=300)
+    fig.savefig(osp.join(root, "plot_ablation_weight.pdf"))
 
 
 if __name__ == "__main__":

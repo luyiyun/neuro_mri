@@ -104,7 +104,8 @@ def main():
     )
 
     # 5. saving
-    fig.savefig(osp.join(root, "plot_comparison.png"))
+    fig.savefig(osp.join(root, "plot_comparison.png"), dpi=300)
+    fig.savefig(osp.join(root, "plot_comparison.pdf"))
 
 
 if __name__ == "__main__":

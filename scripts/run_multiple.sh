@@ -1,3 +1,20 @@
+# comparisons
+# 1. cnn3d + focal loss
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model cnn3d
+# 2. cnn3d
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model cnn3d --loss_func ce
+# 3. 无satt和iatt (cnn2d) + focal loss
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt
+# 4. 无satt和iatt (cnn2d)
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt --loss_func ce
+# 5. svc
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model sklearn_svc
+# 6. rf
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model sklearn_rf
+# 7. proposed, 无focal loss
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --loss_func ce
+
+
 # ablation study
 # 1. 无satt
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt
@@ -29,21 +46,13 @@
 # 出现NaN，换个seed试试
 # python ./scripts/train.py --device "cuda:1" --cv 5 --seed 1 --slice_index 2 10 --focal_alpha 0.5 --focal_gamma 0.5
 # 8. backbone: 从头训练 & freezing
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --satt_dp 0.1 --no_backbone_pretrained
-python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --satt_dp 0.1 --backbone_freeze
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --satt_dp 0.1 --no_backbone_pretrained
+# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --satt_dp 0.1 --backbone_freeze
 
-# comparisons
-# 1. cnn3d + focal loss
-# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model cnn3d
-# 2. cnn3d
-# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model cnn3d --loss_func ce
-# 3. 无satt和iatt (cnn2d) + focal loss
-# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt
-# 4. 无satt和iatt (cnn2d)
-# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --no_satt --no_iatt --loss_func ce
-# 5. svc
-# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model sklearn_svc
-# 6. rf
-# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --model sklearn_rf
-# 7. proposed, 无focal loss
-# python ./scripts/train.py --device "cuda:1" --cv 5 --seed 0 --slice_index 2 10 --loss_func ce
+
+# plotting
+for pyname in ablation comparison heatmap hist imgsize
+do
+  echo "Plot ${pyname}"
+  python ./scripts/plot_${pyname}.py
+done

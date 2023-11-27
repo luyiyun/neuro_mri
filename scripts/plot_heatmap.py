@@ -246,7 +246,8 @@ def main():
     )  #
 
     # 5. saving
-    fig.savefig(osp.join(root, "plot_heatmap.png"))
+    fig.savefig(osp.join(root, "plot_heatmap.png"), dpi=300)
+    fig.savefig(osp.join(root, "plot_heatmap.pdf"))
 
 
 if __name__ == "__main__":
