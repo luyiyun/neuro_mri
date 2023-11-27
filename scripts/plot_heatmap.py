@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
+import nibabel as nib
 import numpy as np
 import pandas as pd
 import torch
@@ -26,7 +27,8 @@ class Plotter:
     depth: str = 12
 
     def __init__(self, run_dir: str) -> None:
-        self._resize_func = Resize((256, 256, 12), mode="trilinear")
+        self._resize_func_12 = Resize((256, 256, 12), mode="trilinear")
+        self._resize_func_24 = Resize((256, 256, 24), mode="trilinear")
 
         self._test_pred_df = pd.read_csv(
             osp.join(run_dir, "test_pred.csv"), index_col=0
@@ -56,6 +58,15 @@ class Plotter:
             ),
         )["test"].dataset
 
+        self._slice_index = slice(None, None)
+        if "slice_index" in trained_args.__dict__:
+            slice_index_arg = trained_args.slice_index
+            self._slice_index = (
+                slice(None, None)
+                if slice_index_arg is None
+                else slice(slice_index_arg[1], -slice_index_arg[0])
+            )
+
     def get_plot_metas(self, root: str) -> List[Dict]:
         plot_metas = []
         for subdir, _, fns in os.walk(root):
@@ -83,7 +94,7 @@ class Plotter:
             assert sum(mask) == 1
             ind = np.nonzero(mask)[0][0]
             resample_fn = self._test_pred_df[self.fn_col].iloc[ind]
-            sscorei = self._resize_func(self._sscores[[ind]])[0]
+            sscorei = self._resize_func_12(self._sscores[[ind]])[0]
 
             plot_metas.append(
                 {
@@ -105,15 +116,14 @@ class Plotter:
         self,
         plot_meta: Dict,
         figure: Optional[Figure] = None,
-        index_str: Optional[Tuple[str, str]] = None,
+        index_str: Optional[Tuple[str, str, str]] = None,
+        subtitles: Optional[Tuple[str, str, str]] = None,
         **fig_kws
     ):
         if figure is None:
             figure = plt.figure(constrained_layout=True, **fig_kws)
-        figs = figure.subfigures(
-            ncols=1, nrows=2, hspace=0.0, height_ratios=[1, 1]
-        )
-        fig_iscore, fig_sscore = figs[0], figs[1]
+        figs = figure.subfigures(ncols=1, nrows=3, hspace=0.0)
+        fig_iscore, fig_sscore, fig_true = figs[0], figs[1], figs[2]
         if index_str is not None:
             fig_iscore.text(
                 0.01,
@@ -126,13 +136,26 @@ class Plotter:
             )
             fig_sscore.text(
                 0.01,
-                0.98,
+                0.95,
                 index_str[1],
                 fontweight="bold",
                 fontsize=12,
                 va="center",
                 ha="center",
             )
+            fig_true.text(
+                0.01,
+                0.95,
+                index_str[2],
+                fontweight="bold",
+                fontsize=12,
+                va="center",
+                ha="center",
+            )
+
+        if subtitles is not None:
+            for figi, titlei in zip(figs, subtitles):
+                figi.suptitle(titlei)
 
         depth = self.depth
         item = plot_meta
@@ -151,11 +174,10 @@ class Plotter:
         ax.set_xlim(0.42, 12.5)
         ax.xaxis.set_ticks(np.arange(1, depth + 1))
         ax.xaxis.set_ticklabels(np.arange(1, depth + 1))
+        ax.xaxis.set_ticks([])
+        ax.xaxis.set_ticklabels([])
         ax.spines[["right", "top"]].set_visible(False)
-        fig_iscore.suptitle("Instance Attention Scores")
 
-        # set a empty subfigure as placeholder
-        fig_sscore.suptitle("Spatial Attention Scores")
         axs = fig_sscore.subplots(ncols=depth)
         for i in range(depth):
             ax = axs[i]
@@ -174,6 +196,25 @@ class Plotter:
             location="left",
         )
 
+        lesion = nib.load(item["lesion"]).get_fdata()
+        lesion = (lesion - lesion.min()) / lesion.max()
+        lesion = self._resize_func_24(np.expand_dims(lesion, 0))[
+            0, ..., self._slice_index
+        ]
+        # set a empty subfigure as placeholder
+        fig_true = fig_true.subfigures(
+            nrows=1, ncols=2, width_ratios=[1, 50]
+        )[1]
+        axs = fig_true.subplots(ncols=depth)
+        for i in range(depth):
+            ax = axs[i]
+            lesioni = ndimage.rotate(lesion[..., i], 90)
+            ax.imshow(lesioni, cmap="gray")
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            ax.xaxis.set_ticks([])
+            ax.yaxis.set_ticks([])
+
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -184,17 +225,24 @@ def main():
     )
 
     plt.rcParams["font.family"] = "Times New Roman"
-    fig = plt.figure(constrained_layout=True, figsize=(20, 8))
+    fig = plt.figure(constrained_layout=True, figsize=(20, 12))
     subfigs = fig.subfigures(ncols=1, nrows=2, hspace=0.01)
+    subtitles = [
+        "Instance Attention Scores",
+        "Spatial Attention Scores",
+        "True Lesions",
+    ]
+    subfigs[0].suptitle("MS case")
+    subfigs[1].suptitle("CSVD case")
 
     csvd_metas = plotter.get_plot_metas("/mnt/data1/tiantan/labeling/CSVD/")
     plotter.plot_instance_spatial_scores(
-        csvd_metas[3], subfigs[0], ("A", "B")
+        csvd_metas[3], subfigs[0], ("A", "B", "C"), subtitles
     )  # 0 or 3
 
     ms_metas = plotter.get_plot_metas("/mnt/data1/tiantan/labeling/MS/")
     plotter.plot_instance_spatial_scores(
-        ms_metas[0], subfigs[1], ("C", "D")
+        ms_metas[0], subfigs[1], ("D", "E", "F"), subtitles
     )  #
 
     # 5. saving
