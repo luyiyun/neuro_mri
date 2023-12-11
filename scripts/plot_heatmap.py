@@ -228,7 +228,7 @@ def main():
     fig = plt.figure(constrained_layout=True, figsize=(20, 12))
     subfigs = fig.subfigures(ncols=1, nrows=2, hspace=0.01)
     subtitles = [
-        "Instance Attention Scores",
+        "Slice Attention Scores",
         "Spatial Attention Scores",
         "True Lesions",
     ]

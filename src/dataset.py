@@ -73,7 +73,7 @@ def dfs2loaders(
     num_workers: int,
     drop_last: bool,
     classes: Sequence,
-    slice_index: Tuple[Optional[int], Optional[int]] = (None, None)
+    slice_index: Tuple[Optional[int], Optional[int]] = (None, None),
 ) -> Union[Dict[str, DataLoader], Tuple[Dict[str, DataLoader], Sequence]]:
     # get datasets
     datasets = {}
@@ -86,9 +86,10 @@ def dfs2loaders(
                 )
             ],
             transform=get_transforms(
-                train=(phase == "train"), classes=classes,
+                train=(phase == "train"),
+                classes=classes,
                 trunc_slice_top=slice_index[0],
-                trunc_slice_bottom=slice_index[1]
+                trunc_slice_bottom=slice_index[1],
             ),
         )
 
@@ -119,7 +120,7 @@ def get_loaders(
     num_workers: int = 4,
     drop_last: bool = True,
     return_classes_codes: bool = False,
-    slice_index: Tuple[Optional[int], Optional[int]] = (None, None)
+    slice_index: Tuple[Optional[int], Optional[int]] = (None, None),
 ):
     # get classes mapping
     classes = df[label_col].unique()
@@ -154,8 +155,14 @@ def get_loaders(
         dfs["train"] = df
 
         dataloaders = dfs2loaders(
-            dfs, fn_col, label_col, batch_size, num_workers, drop_last,
-            classes, slice_index
+            dfs,
+            fn_col,
+            label_col,
+            batch_size,
+            num_workers,
+            drop_last,
+            classes,
+            slice_index,
         )
 
         if not return_classes_codes:
@@ -180,8 +187,14 @@ def get_loaders(
         dfs["train"] = train_df
 
         dataloaders = dfs2loaders(
-            dfs, fn_col, label_col, batch_size, num_workers, drop_last,
-            classes, slice_index
+            dfs,
+            fn_col,
+            label_col,
+            batch_size,
+            num_workers,
+            drop_last,
+            classes,
+            slice_index,
         )
 
         if not return_classes_codes:
@@ -190,7 +203,9 @@ def get_loaders(
             yield dataloaders, classes
 
 
-def extract_imgs_labels_from_loader(loader: DataLoader) -> Tuple[Sequence[str], Sequence[Any]]:
+def extract_imgs_labels_from_loader(
+    loader: DataLoader,
+) -> Tuple[Sequence[str], Sequence[Any]]:
     imgs, labels = [], []
     for elem in loader.dataset.data:
         imgs.append(elem["img"])

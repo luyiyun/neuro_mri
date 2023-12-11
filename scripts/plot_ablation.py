@@ -181,7 +181,7 @@ def main():
     run_items_att = [
         {"method": "Proposed Method", "dir": "2023-11-19_21-00-03"},
         {"method": "w/o Spatial Attention", "dir": "2023-11-19_15-25-53"},
-        {"method": "w/o Instance Attention", "dir": "2023-11-19_15-58-19"},
+        {"method": "w/o Slice Attention", "dir": "2023-11-19_15-58-19"},
         {"method": "w/o All Attentions", "dir": "2023-11-19_16-30-42"},
     ]
     test_scores = get_test_scores(run_items_att, root)
@@ -235,7 +235,7 @@ def main():
             {
                 "dir": fni,
                 "Gamma": args["focal_gamma"],
-                "Alpha": "alpha=%.1f" % args["focal_alpha"],
+                "Alpha": "alpha=%.2f" % args["focal_alpha"],
             }
         )
     test_scores = get_test_scores(run_items_focal, root)
@@ -259,7 +259,7 @@ def main():
             y=metrici,
             hue="Alpha",
             ax=ax,
-            hue_order=["alpha=0.5", "alpha=0.8", "alpha=1.0"],
+            hue_order=["alpha=0.25", "alpha=0.50", "alpha=0.75"],
         )
         ax.set_xlabel("")
         ax.set_ylabel("")
