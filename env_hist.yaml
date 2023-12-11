@@ -1,0 +1,29 @@
+name: tiantan
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.1
+  - tqdm
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - scikit-learn
+  - seaborn
+  - nibabel
+  - ipython
+  - ipdb
+  - flake8
+  - jupyterlab
+  - tensorboard
+  - monai
+  - torchmetrics
+  - ca-certificates
+  - certifi
+  - openssl
+prefix: /home/rongzhiwei/mambaforge/envs/tiantan
