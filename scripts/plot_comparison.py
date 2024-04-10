@@ -50,10 +50,11 @@ def main():
 
     # 4. plot the metrics
     plt.rcParams["font.family"] = "Times New Roman"
-    nmethods = len(run_dirs)
+    # nmethods = len(run_dirs)
     # sci_palettes.register_cmap()
     # palette = sns.color_palette("npg_nrc")[:nmethods]
-    palette = cc.glasbey_bw[:nmethods]
+    palette = {k: cc.glasbey_bw[i] for i, k in enumerate(run_dirs.keys())}
+    # palette = cc.glasbey_bw[:nmethods]
 
     fig = plt.figure(constrained_layout=True)
     gs = fig.add_gridspec(ncols=6, nrows=2)
@@ -91,9 +92,8 @@ def main():
         ax.spines[["right", "top"]].set_visible(False)
 
     handles, labels = [], []
-    for i, label in enumerate(test_scores["method"].unique()):
-        handles.append(mpatches.Patch(color=palette[i], label=label))
-        labels.append(label)
+    handles = [mpatches.Patch(color=v, label=k) for k, v in palette.items()]
+    labels = list(palette.keys())
     fig.legend(
         handles,
         labels,

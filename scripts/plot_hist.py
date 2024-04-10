@@ -22,7 +22,9 @@ def main():
         "2D-CNN (Focal Loss)": "2023-11-19_16-30-42",
         "2D-CNN (Cross Entropy)": "2023-11-21_01-41-11",
     }
-    nmethods = len(run_dirs)
+    # nmethods = len(run_dirs)
+    # 保证和comparison的颜色一致
+    palette = {k: cc.glasbey_bw[i] for i, k in enumerate(run_dirs.keys())}
 
     # 2. load the hist records
     hists = []
@@ -67,7 +69,7 @@ def main():
     plt.rcParams["font.family"] = "Times New Roman"
     # sci_palettes.register_cmap()
     # palette = sns.color_palette("npg_nrc")[1:(nmethods + 1)]
-    palette = cc.glasbey_category10[:nmethods]
+    # palette = cc.glasbey_category10[:nmethods]
 
     fig = plt.figure(constrained_layout=True, figsize=(10, 8))
     subfigs = fig.subfigures(1, 2, wspace=0.07)
