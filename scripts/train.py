@@ -24,6 +24,18 @@ def main():
 
     # 0. argparser
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--index_file",
+        default="/mnt/data1/tiantan/fn_rm_skull_mv.csv"
+    )
+    parser.add_argument(
+        "--save_root",
+        default=osp.join(
+            "/mnt/data1/tiantan/results/%s" %
+            datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+        )
+    )
+
     parser.add_argument("--cv", default=None, type=int)
     parser.add_argument("--valid_size", default=0.1, type=float)
     parser.add_argument("--test_size", default=0.2, type=float)
@@ -73,7 +85,6 @@ def main():
     parser.add_argument("--device", default="cpu", type=str)
     parser.add_argument("--nepoches", default=50, type=int)
     parser.add_argument("--learning_rate", default=5e-4, type=float)
-    parser.add_argument("--save_root", default=None, type=str)
     parser.add_argument("--no_modelcheckpoint", action="store_true")
     parser.add_argument("--no_early_stop", action="store_true")
     parser.add_argument("--early_stop_patience", default=10, type=int)
@@ -94,21 +105,15 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.save_root is None:
-        save_root = osp.join(
-            "/mnt/data1/tiantan/results/%s"
-            % datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
-        )
-    else:
-        save_root = args.save_root
+    save_root = args.save_root
     logging.info("the results saved in %s" % save_root)
-    rescaled_dir = "/mnt/data1/tiantan/rescaled_nilearn"
-    os.makedirs(rescaled_dir, exist_ok=True)
+    # rescaled_dir = "/mnt/data1/tiantan/rescaled_nilearn"
+    # os.makedirs(rescaled_dir, exist_ok=True)
 
     set_seed(args.seed)
 
     # 1. dataset
-    df = pd.read_csv("/mnt/data1/tiantan/fn_rm_skull_mv.csv", index_col=0)
+    df = pd.read_csv(args.index_file, index_col=0)
     df = df.loc[df.v1_filter2, :]
     dataloaders_iter = get_loaders(
         df,
